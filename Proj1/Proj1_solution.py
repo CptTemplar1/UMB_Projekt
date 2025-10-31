@@ -1,6 +1,12 @@
 import os
 import string
 import random
+
+#Potrzebne tylko przy pierwszym uruchomieniu
+#import nltk
+#nltk.download('stopwords')
+#nltk.download('punkt_tab')
+
 from email import message_from_file
 from nltk.corpus import stopwords
 from nltk.stem import PorterStemmer
@@ -89,7 +95,7 @@ def classify_email(tokens, blacklist):
 # === GŁÓWNY PROGRAM ===
 def main():
     print("📂 Wczytywanie danych...")
-    index_entries = load_index(INDEX_PATH)
+    index_entries = load_index(INDEX_PATH)[:2000]  # Ograniczenie do 2000 dla szybkości
     random.shuffle(index_entries)
 
     split_point = int(len(index_entries) * TRAIN_RATIO)
