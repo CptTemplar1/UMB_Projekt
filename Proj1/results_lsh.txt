@@ -1,0 +1,72 @@
+LSH MinHash results
+SAMPLE_SIZE=100
+NUM_PERM=128
+SHINGLE_SIZE=3
+USE_STEMMING=True
+
+prepare_time=2.23s
+
+
+THRESHOLD=0.1
+
+accuracy=55.00%
+
+build_time=0.04s classify_time=0.66s
+
+confusion_percent:
+
+spam_spam= 35.00% spam_ham= 45.00%
+
+ham_spam=  0.00% ham_ham= 20.00%
+
+
+THRESHOLD=0.3
+
+accuracy=40.00%
+
+build_time=0.03s classify_time=0.22s
+
+confusion_percent:
+
+spam_spam= 20.00% spam_ham= 60.00%
+
+ham_spam=  0.00% ham_ham= 20.00%
+
+
+THRESHOLD=0.5
+
+accuracy=35.00%
+
+build_time=0.03s classify_time=0.22s
+
+confusion_percent:
+
+spam_spam= 15.00% spam_ham= 65.00%
+
+ham_spam=  0.00% ham_ham= 20.00%
+
+
+THRESHOLD=0.7
+
+accuracy=30.00%
+
+build_time=0.03s classify_time=0.23s
+
+confusion_percent:
+
+spam_spam= 10.00% spam_ham= 70.00%
+
+ham_spam=  0.00% ham_ham= 20.00%
+
+
+THRESHOLD=0.9
+
+accuracy=30.00%
+
+build_time=0.03s classify_time=0.29s
+
+confusion_percent:
+
+spam_spam= 10.00% spam_ham= 70.00%
+
+ham_spam=  0.00% ham_ham= 20.00%
