@@ -1,0 +1,16 @@
+Naive Bayes Results
+
+Bez preprocessing
+Accuracy: 90.00%
+Czas: 0.10s
+Confusion matrix (%):
+spam_spam=70.00% spam_ham=10.00%
+ham_spam=0.00% ham_ham=20.00%
+
+Z preprocessingiem (NLTK)
+Accuracy: 90.00%
+Czas: 0.53s
+Confusion matrix (%):
+spam_spam=70.00% spam_ham=10.00%
+ham_spam=0.00% ham_ham=20.00%
+

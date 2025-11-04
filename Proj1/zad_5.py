@@ -3,9 +3,14 @@ import string
 import random
 import time
 from email import message_from_file
+
+import nltk
 from nltk.corpus import stopwords
 from nltk.stem import PorterStemmer
 from nltk.tokenize import word_tokenize
+
+from sklearn.feature_extraction.text import CountVectorizer
+from sklearn.naive_bayes import MultinomialNB
 from sklearn.metrics import confusion_matrix, accuracy_score
 import numpy as np
 
@@ -13,101 +18,113 @@ import numpy as np
 INDEX_PATH = "trec07p/full/index"
 DATA_PATH = "trec07p"
 TRAIN_RATIO = 0.8
-TOP_N = 100        # liczba słów w blacklist
-SAMPLE_SIZE = None # np. 2000 dla testów, None = całość
-RESULTS_FILE = "results_stemming.txt"
+SAMPLE_SIZE = 100  # np. 2000 dla testów
+RESULTS_FILE = "results_naive_bayes.txt"
 
-# === FUNKCJE ===
+random.seed(42)
+
+
+# === POMOCNICZE FUNKCJE ===
 def load_index(index_path):
     entries = []
     with open(index_path, "r") as f:
         for line in f:
-            label, path = line.strip().split()
-            full_path = os.path.join(DATA_PATH, path.replace("../", ""))
-            entries.append((full_path, label))
+            parts = line.strip().split()
+            if len(parts) >= 2:
+                label, path = parts[0], parts[1]
+                full_path = os.path.join(DATA_PATH, path.replace("../", ""))
+                entries.append((full_path, label))
     return entries
 
 
-def preprocess_text(text, use_stemming=True):
-    """Czyszczenie, tokenizacja, usuwanie stopwords i (opcjonalnie) stemizacja."""
-    text = text.lower()
-    text = text.translate(str.maketrans("", "", string.punctuation))
-    tokens = word_tokenize(text)
-    stop_words = set(stopwords.words('english'))
-    tokens = [w for w in tokens if w not in stop_words and w.isalpha()]
-
-    if use_stemming:
-        stemmer = PorterStemmer()
-        tokens = [stemmer.stem(w) for w in tokens]
-
-    return tokens
-
-
 def load_email_content(filepath):
-    """Wczytuje zawartość e-maila."""
+    """Wczytuje treść e-maila (temat + ciało) jako zwykły tekst."""
     try:
         with open(filepath, "r", encoding="latin-1") as f:
             msg = message_from_file(f)
+            subject = msg.get("Subject", "")
+            payload = ""
             if msg.is_multipart():
-                parts = [p.get_payload(decode=True) for p in msg.get_payload() if p.get_payload()]
-                text = " ".join([str(p) for p in parts])
+                parts = []
+                for part in msg.walk():
+                    ctype = part.get_content_type()
+                    if ctype.startswith("text/"):
+                        p = part.get_payload(decode=True)
+                        if p:
+                            parts.append(p)
+                payload = " ".join(str(p) for p in parts)
             else:
-                text = msg.get_payload(decode=True)
-            if text:
-                text = text.decode(errors="ignore") if isinstance(text, bytes) else text
-                return text
-            else:
-                return ""
+                p = msg.get_payload(decode=True)
+                payload = p if p else ""
+            if isinstance(payload, bytes):
+                payload = payload.decode(errors="ignore")
+            return subject + " " + payload
     except Exception:
         return ""
 
 
-def build_blacklist(train_data, top_n=100):
-    """Tworzy listę słów kluczowych na podstawie danych treningowych."""
-    spam_words = {}
-    ham_words = {}
-    for tokens, label in train_data:
-        for token in tokens:
-            if label == "spam":
-                spam_words[token] = spam_words.get(token, 0) + 1
-            else:
-                ham_words[token] = ham_words.get(token, 0) + 1
-
-    spam_ratio = {word: spam_words[word] / (ham_words.get(word, 0) + 1) for word in spam_words}
-    sorted_words = sorted(spam_ratio.items(), key=lambda x: x[1], reverse=True)
-    return [w for w, _ in sorted_words[:top_n]]
+def preprocess_text(text):
+    """Usuwa interpunkcję, stopwords i dokonuje stemizacji."""
+    text = text.lower()
+    text = text.translate(str.maketrans("", "", string.punctuation))
+    tokens = word_tokenize(text)
+    sw = set(stopwords.words("english"))
+    tokens = [t for t in tokens if t.isalpha() and t not in sw]
+    stemmer = PorterStemmer()
+    tokens = [stemmer.stem(t) for t in tokens]
+    return " ".join(tokens)
 
 
-def classify_email(tokens, blacklist):
-    """Zwraca etykietę spam/ham w zależności od obecności słów zakazanych."""
-    return "spam" if any(word in blacklist for word in tokens) else "ham"
+def prepare_data(entries, use_preprocessing=False):
+    """Zwraca listę tekstów i etykiet (spam/ham), z opcjonalnym preprocessingiem."""
+    texts, labels = [], []
+    for path, label in entries:
+        text = load_email_content(path)
+        if use_preprocessing:
+            text = preprocess_text(text)
+        texts.append(text)
+        labels.append(label)
+    return texts, labels
 
 
-def evaluate_model(train_entries, test_entries, use_stemming):
-    """Trenuje i testuje klasyfikator; zwraca accuracy, macierz konfuzji i czas."""
+# === FUNKCJA EKSPERYMENTU ===
+def run_naive_bayes(train_entries, test_entries, use_preprocessing=False):
+    """
+    Trenuje i testuje klasyfikator MultinomialNB dla zbioru TREC07P.
+    Zwraca: accuracy, confusion_matrix, czas wykonania (s)
+    """
+    print(f"\n🧠 Uruchamianie Naive Bayes ({'z preprocessingiem' if use_preprocessing else 'bez preprocessing'})...")
     start_time = time.time()
 
-    train_data = []
-    for path, label in train_entries:
-        text = load_email_content(path)
-        tokens = preprocess_text(text, use_stemming)
-        train_data.append((tokens, label))
+    # Przygotowanie danych
+    X_train_texts, y_train = prepare_data(train_entries, use_preprocessing)
+    X_test_texts, y_test = prepare_data(test_entries, use_preprocessing)
 
-    blacklist = build_blacklist(train_data, top_n=TOP_N)
+    # Konwersja do macierzy cech (bag of words)
+    vectorizer = CountVectorizer()
+    X_train = vectorizer.fit_transform(X_train_texts)
+    X_test = vectorizer.transform(X_test_texts)
 
-    y_true, y_pred = [], []
-    for path, label in test_entries:
-        text = load_email_content(path)
-        tokens = preprocess_text(text, use_stemming)
-        prediction = classify_email(tokens, blacklist)
-        y_true.append(label)
-        y_pred.append(prediction)
+    # Trening
+    model = MultinomialNB()
+    model.fit(X_train, y_train)
 
+    # Predykcja
+    y_pred = model.predict(X_test)
+
+    # Ewaluacja
     elapsed = time.time() - start_time
     labels = ["spam", "ham"]
-    cm = confusion_matrix(y_true, y_pred, labels=labels)
+    cm = confusion_matrix(y_test, y_pred, labels=labels)
     cm_percent = cm / np.sum(cm) * 100
-    acc = accuracy_score(y_true, y_pred) * 100
+    acc = accuracy_score(y_test, y_pred) * 100
+
+    # Wyświetlenie wyników
+    print(f"🎯 Accuracy: {acc:.2f}% | Czas wykonania: {elapsed:.2f}s")
+    print("📊 Confusion matrix (%):")
+    print(f"      spam      ham")
+    print(f"spam  {cm_percent[0,0]:6.2f}%   {cm_percent[0,1]:6.2f}%")
+    print(f"ham   {cm_percent[1,0]:6.2f}%   {cm_percent[1,1]:6.2f}%")
 
     return acc, cm_percent, elapsed
 
@@ -120,59 +137,36 @@ def main():
 
     if SAMPLE_SIZE:
         index_entries = index_entries[:SAMPLE_SIZE]
+        print(f"⚠️ SAMPLE_SIZE active: using first {len(index_entries)} entries")
 
     split_point = int(len(index_entries) * TRAIN_RATIO)
     train_entries = index_entries[:split_point]
     test_entries = index_entries[split_point:]
+    print(f"Łącznie: {len(index_entries)} dokumentów; trening: {len(train_entries)}; test: {len(test_entries)}")
 
-    results_log = []
+    # Wyniki
+    results = []
 
-    # --- Test 1: Z STEMIZACJĄ ---
-    print("🧠 Test 1: Z STEMIZACJĄ")
-    acc_stem, cm_stem, time_stem = evaluate_model(train_entries, test_entries, use_stemming=True)
-    print(f"🎯 Accuracy (stem): {acc_stem:.2f}% | ⏱ Czas: {time_stem:.2f}s")
-    results_log.append(f"Test 1 (z stemizacją): accuracy={acc_stem:.2f}%, czas={time_stem:.2f}s")
+    # 1️⃣ Wersja bez preprocessing (pełny tekst)
+    acc_raw, cm_raw, t_raw = run_naive_bayes(train_entries, test_entries, use_preprocessing=False)
+    results.append(("Bez preprocessing", acc_raw, cm_raw, t_raw))
 
-    # --- Test 2: BEZ STEMIZACJI ---
-    print("\n🧠 Test 2: BEZ STEMIZACJI")
-    acc_no_stem, cm_no_stem, time_no_stem = evaluate_model(train_entries, test_entries, use_stemming=False)
-    print(f"🎯 Accuracy (no stem): {acc_no_stem:.2f}% | ⏱ Czas: {time_no_stem:.2f}s")
-    results_log.append(f"Test 2 (bez stemizacji): accuracy={acc_no_stem:.2f}%, czas={time_no_stem:.2f}s")
+    # 2️⃣ Wersja z preprocessingiem (usuwanie stopwords i stemizacja)
+    acc_clean, cm_clean, t_clean = run_naive_bayes(train_entries, test_entries, use_preprocessing=True)
+    results.append(("Z preprocessingiem (NLTK)", acc_clean, cm_clean, t_clean))
 
-    # --- Porównanie ---
-    diff_acc = acc_stem - acc_no_stem
-    diff_time = time_stem - time_no_stem
-
-    summary = (
-        "\n📊 PORÓWNANIE WYNIKÓW\n"
-        f"Z stemizacją:    {acc_stem:.2f}% ({time_stem:.2f}s)\n"
-        f"Bez stemizacji:  {acc_no_stem:.2f}% ({time_no_stem:.2f}s)\n"
-        f"🧩 Różnica dokładności: {diff_acc:+.2f}%\n"
-        f"⏱ Różnica czasu: {diff_time:+.2f}s (wartość dodatnia = wolniej ze stemizacją)\n"
-    )
-
-    print(summary)
-    results_log.append(summary)
-
-    # --- Macierze konfuzji ---
-    matrix_report = (
-        "\n📊 MACIERZ KONFUZJI (Z STEMIZACJĄ):\n"
-        f"      spam      ham\n"
-        f"spam  {cm_stem[0,0]:6.2f}%   {cm_stem[0,1]:6.2f}%\n"
-        f"ham   {cm_stem[1,0]:6.2f}%   {cm_stem[1,1]:6.2f}%\n\n"
-        "📊 MACIERZ KONFUZJI (BEZ STEMIZACJI):\n"
-        f"      spam      ham\n"
-        f"spam  {cm_no_stem[0,0]:6.2f}%   {cm_no_stem[0,1]:6.2f}%\n"
-        f"ham   {cm_no_stem[1,0]:6.2f}%   {cm_no_stem[1,1]:6.2f}%\n"
-    )
-    print(matrix_report)
-    results_log.append(matrix_report)
-
-    # --- Zapis wyników do pliku ---
+    # Zapis wyników do pliku
     with open(RESULTS_FILE, "w", encoding="utf-8") as f:
-        f.write("\n".join(results_log))
+        f.write("Naive Bayes Results\n\n")
+        for title, acc, cm, t in results:
+            f.write(f"{title}\n")
+            f.write(f"Accuracy: {acc:.2f}%\nCzas: {t:.2f}s\n")
+            f.write("Confusion matrix (%):\n")
+            f.write(f"spam_spam={cm[0,0]:.2f}% spam_ham={cm[0,1]:.2f}%\n")
+            f.write(f"ham_spam={cm[1,0]:.2f}% ham_ham={cm[1,1]:.2f}%\n\n")
 
-    print(f"📁 Wyniki zapisano do pliku: {RESULTS_FILE}")
+    print(f"\n📁 Wyniki zapisano do: {RESULTS_FILE}")
+    print("✅ Gotowe.")
 
 
 if __name__ == "__main__":
