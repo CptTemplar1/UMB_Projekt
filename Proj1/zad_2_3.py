@@ -14,7 +14,7 @@ INDEX_PATH = "trec07p/full/index"
 DATA_PATH = "trec07p"
 TRAIN_RATIO = 0.8
 TOP_N = 100        # liczba słów w blacklist
-SAMPLE_SIZE = None # np. 2000 dla testów, None = całość
+SAMPLE_SIZE = None # ograniczenie liczby próbek, np. 2000 dla testów, None = całość
 RESULTS_FILE = "results_stemming.txt"
 
 # === FUNKCJE ===
@@ -27,9 +27,8 @@ def load_index(index_path):
             entries.append((full_path, label))
     return entries
 
-
+# Funcja do przetwarzania tekstu. Przeprowadza takie funkcje jak: czyszczenie, tokenizacja, usuwanie stopwords i (opcjonalnie) stemizacja
 def preprocess_text(text, use_stemming=True):
-    """Czyszczenie, tokenizacja, usuwanie stopwords i (opcjonalnie) stemizacja."""
     text = text.lower()
     text = text.translate(str.maketrans("", "", string.punctuation))
     tokens = word_tokenize(text)
@@ -42,9 +41,8 @@ def preprocess_text(text, use_stemming=True):
 
     return tokens
 
-
+# Wczytuje zawartość e-maila.
 def load_email_content(filepath):
-    """Wczytuje zawartość e-maila."""
     try:
         with open(filepath, "r", encoding="latin-1") as f:
             msg = message_from_file(f)
@@ -61,9 +59,8 @@ def load_email_content(filepath):
     except Exception:
         return ""
 
-
+# Tworzy listę słów kluczowych na podstawie danych treningowych.
 def build_blacklist(train_data, top_n=100):
-    """Tworzy listę słów kluczowych na podstawie danych treningowych."""
     spam_words = {}
     ham_words = {}
     for tokens, label in train_data:
@@ -77,14 +74,12 @@ def build_blacklist(train_data, top_n=100):
     sorted_words = sorted(spam_ratio.items(), key=lambda x: x[1], reverse=True)
     return [w for w, _ in sorted_words[:top_n]]
 
-
+# Zwraca etykietę spam/ham w zależności od obecności słów zakazanych.
 def classify_email(tokens, blacklist):
-    """Zwraca etykietę spam/ham w zależności od obecności słów zakazanych."""
     return "spam" if any(word in blacklist for word in tokens) else "ham"
 
-
+# Trenuje i testuje klasyfikator; zwraca accuracy, macierz konfuzji i czas.
 def evaluate_model(train_entries, test_entries, use_stemming):
-    """Trenuje i testuje klasyfikator; zwraca accuracy, macierz konfuzji i czas."""
     start_time = time.time()
 
     train_data = []
@@ -127,7 +122,7 @@ def main():
 
     results_log = []
 
-    # --- Test 1: Z STEMIZACJĄ ---
+    # --- Test 1: ZE STEMIZACJĄ ---
     print("🧠 Test 1: Z STEMIZACJĄ")
     acc_stem, cm_stem, time_stem = evaluate_model(train_entries, test_entries, use_stemming=True)
     print(f"🎯 Accuracy (stem): {acc_stem:.2f}% | ⏱ Czas: {time_stem:.2f}s")

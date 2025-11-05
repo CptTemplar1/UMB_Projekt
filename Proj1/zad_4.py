@@ -17,17 +17,15 @@ import numpy as np
 INDEX_PATH = "trec07p/full/index"
 DATA_PATH = "trec07p"
 TRAIN_RATIO = 0.8
-SAMPLE_SIZE = 100  # np. 2000 dla szybkiego testu, None = całość
+SAMPLE_SIZE = None  # ograniczenie liczby próbek, np. 2000 dla testów, None = całość
 RESULTS_FILE = "results_lsh.txt"
 
-# MinHash / Shingle params
+# Parametry LSH / MinHash
 NUM_PERM = 128
-SHINGLE_SIZE = 3  # k for k-shingles (on tokens)
-USE_STEMMING = True  # możesz ustawić False aby porównać wpływ stemizacji tutaj
+SHINGLE_SIZE = 3  # rozmiar shingli (k-gramów)
+USE_STEMMING = True  # czy stosować stemizację
 THRESHOLDS = [0.1, 0.3, 0.5, 0.7, 0.9]  # testowane progi LSH
-
-# Domyślna etykieta gdy brak dopasowań (często ham)
-DEFAULT_LABEL = "ham"
+DEFAULT_LABEL = "ham" # etykieta domyślna, gdy brak dopasowań w LSH
 
 random.seed(42)
 

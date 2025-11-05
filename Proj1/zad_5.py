@@ -18,7 +18,7 @@ import numpy as np
 INDEX_PATH = "trec07p/full/index"
 DATA_PATH = "trec07p"
 TRAIN_RATIO = 0.8
-SAMPLE_SIZE = 100  # np. 2000 dla testów
+SAMPLE_SIZE = None  # ograniczenie liczby próbek, np. 2000 dla testów, None = całość
 RESULTS_FILE = "results_naive_bayes.txt"
 
 random.seed(42)

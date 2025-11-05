@@ -1,0 +1,19 @@
+📂 Wczytywanie danych...
+Łącznie: 75419 dokumentów; trening: 60335; test: 15084
+
+🧠 Uruchamianie Naive Bayes (bez preprocessing)...
+🎯 Accuracy: 99.24% | Czas wykonania: 69.66s
+📊 Confusion matrix (%):
+      spam      ham
+spam   65.46%     0.42%
+ham     0.34%    33.78%
+
+🧠 Uruchamianie Naive Bayes (z preprocessingiem)...
+🎯 Accuracy: 98.72% | Czas wykonania: 381.12s
+📊 Confusion matrix (%):
+      spam      ham
+spam   64.85%     1.03%
+ham     0.25%    33.87%
+
+📁 Wyniki zapisano do: results_naive_bayes.txt
+✅ Gotowe.
