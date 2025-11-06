@@ -31,6 +31,7 @@ random.seed(42)
 
 
 # === POMOCNICZE FUNKCJE ===
+# wczytuje index plików i etykiet
 def load_index(index_path):
     entries = []
     with open(index_path, "r") as f:
@@ -38,14 +39,13 @@ def load_index(index_path):
             parts = line.strip().split()
             if len(parts) >= 2:
                 label, path = parts[0], parts[1]
-                # Normalizuj ścieżkę: '../data/inmail.X' -> 'trec07p/data/inmail.X'
+                # Normalizuje ścieżkę: '../data/inmail.X' -> 'trec07p/data/inmail.X'
                 full_path = os.path.join(DATA_PATH, path.replace("../", ""))
                 entries.append((full_path, label))
     return entries
 
-
+# Wczytuje zawartość e-maila i zwraca string tekstowy (ignoruje błędy kodowania)
 def load_email_content(filepath):
-    """Wczytuje zawartość e-maila i zwraca string tekstowy (ignoruje błędy kodowania)."""
     try:
         with open(filepath, "r", encoding="latin-1") as f:
             msg = message_from_file(f)
@@ -71,8 +71,8 @@ def load_email_content(filepath):
         return ""
 
 
+# Przetwarza tekst: czyszczenie, tokenizacja, usuwanie stopwords i (opcjonalnie) stemizacja. zwraca listę tokenów
 def preprocess_text(text, use_stemming=True):
-    """lower, remove punctuation, tokenize, remove stopwords, optional stemming; zwraca listę tokenów."""
     text = text.lower()
     text = text.translate(str.maketrans("", "", string.punctuation))
     tokens = word_tokenize(text)
@@ -83,9 +83,8 @@ def preprocess_text(text, use_stemming=True):
         tokens = [stemmer.stem(t) for t in tokens]
     return tokens
 
-
+# Zwraca listę shingli (k-gramów) utworzonych z tokenów (continuous k-word shingles)
 def get_shingles(tokens, k=3):
-    """Zwraca listę shingli (k-gramów) utworzonych z tokenów (continuous k-word shingles)."""
     if len(tokens) < k:
         # fallback: użyj pojedynczych tokenów
         return tokens
@@ -96,8 +95,8 @@ def get_shingles(tokens, k=3):
     return shingles
 
 
+# Zwraca MinHash obliczony na zestawie shingles (unikatowych).
 def build_minhash_from_shingles(shingles, num_perm=128):
-    """Zwraca MinHash obliczony na zestawie shingles (unikatowych)."""
     m = MinHash(num_perm=num_perm)
     # używamy zestawu, aby uniknąć wielokrotnego dodawania tego samego shingla
     for s in set(shingles):
@@ -106,13 +105,8 @@ def build_minhash_from_shingles(shingles, num_perm=128):
 
 
 # === PROCEDURY TRENING / TEST ===
+# Przygotowuje MinHash dla każdego dokumentu treningowego i mapuje identyfikatory na etykiety. Zwraca dwa słowniki 
 def prepare_train_min_hashes(train_entries, use_stemming=True, shingle_k=3, num_perm=128):
-    """
-    Przygotowuje MinHash dla każdego dokumentu treningowego i mapuje identyfikatory na etykiety.
-    Zwraca:
-      - dict id -> MinHash
-      - dict id -> label
-    """
     id_to_minhash = {}
     id_to_label = {}
     for idx, (path, label) in enumerate(train_entries):
@@ -126,15 +120,8 @@ def prepare_train_min_hashes(train_entries, use_stemming=True, shingle_k=3, num_
     return id_to_minhash, id_to_label
 
 
+# Dla każdego dokumentu testowego: oblicza MinHash, pyta LSH o dopasowania, jeśli lista niepusta - dokonuje głosowania etykiet (majority vote), jeśli pusta - przypisuje DEFAULT_LABEL
 def classify_with_lsh(lsh, train_label_map, test_entries, use_stemming=True, shingle_k=3, num_perm=128):
-    """
-    Dla każdego dokumentu testowego:
-      - oblicz MinHash
-      - zapytaj lsh.query(minhash) -> listę pasujących doc_id
-      - jeśli lista niepusta: dokonaj głosowania etykiet (majority vote)
-      - jeśli pusta: przypisz DEFAULT_LABEL
-    Zwraca y_true, y_pred
-    """
     y_true = []
     y_pred = []
     for path, label in test_entries:
@@ -142,9 +129,9 @@ def classify_with_lsh(lsh, train_label_map, test_entries, use_stemming=True, shi
         tokens = preprocess_text(text, use_stemming)
         shingles = get_shingles(tokens, k=shingle_k)
         m = build_minhash_from_shingles(shingles, num_perm=num_perm)
-        matches = lsh.query(m)  # list of doc_ids
+        matches = lsh.query(m)  # lista dopasowanych dokumentów treningowych
         if matches:
-            # majority vote among labels of matches
+            # głosowanie większościowe etykiet
             votes = [train_label_map[mid] for mid in matches if mid in train_label_map]
             if votes:
                 counter = Counter(votes)
@@ -176,7 +163,7 @@ def main():
     results_lines = []
     results_lines.append(f"LSH MinHash results\nSAMPLE_SIZE={SAMPLE_SIZE}\nNUM_PERM={NUM_PERM}\nSHINGLE_SIZE={SHINGLE_SIZE}\nUSE_STEMMING={USE_STEMMING}\n")
 
-    # Przygotuj MinHash na treningu (raz) - będziemy je ponownie wstawiać do nowych LSH dla różnych thresholdów.
+    # Przygotowuje MinHash na treningu (raz). Będzie ono wstawiane do nowych LSH dla różnych thresholdów
     print("🧠 Budowanie MinHash dla zbioru treningowego...")
     t0 = time.time()
     train_mh_map, train_label_map = prepare_train_min_hashes(train_entries, use_stemming=USE_STEMMING,
@@ -185,14 +172,14 @@ def main():
     print(f"Gotowe. Czas przygotowania MinHash treningu: {t_prep:.2f}s")
     results_lines.append(f"prepare_time={t_prep:.2f}s\n")
 
-    # Dla każdego threshold budujemy nowy MinHashLSH (z tym samym num_perm) i wstawiamy minhashy treningowe.
+    # Dla każdego threshold buduje nowy MinHashLSH (z tym samym num_perm) i wstawia minhashy treningowe
     for thresh in THRESHOLDS:
         print(f"\n🔎 Test dla threshold = {thresh}")
         results_lines.append(f"\nTHRESHOLD={thresh}\n")
-        # buduj LSH z parametrem threshold
+        # buduje LSH z parametrem threshold
         t0 = time.time()
         lsh = MinHashLSH(threshold=thresh, num_perm=NUM_PERM)
-        # insert training minhashes
+        # wstawia minhashy treningowe
         for doc_id, mh in train_mh_map.items():
             lsh.insert(doc_id, mh)
         build_time = time.time() - t0
@@ -217,7 +204,7 @@ def main():
         print(f"spam  {cm_percent[0,0]:6.2f}%   {cm_percent[0,1]:6.2f}%")
         print(f"ham   {cm_percent[1,0]:6.2f}%   {cm_percent[1,1]:6.2f}%")
 
-        # zapisz wyniki
+        # zapis wyników
         results_lines.append(f"accuracy={acc:.2f}%\n")
         results_lines.append(f"build_time={build_time:.2f}s classify_time={elapsed:.2f}s\n")
         results_lines.append("confusion_percent:\n")
@@ -229,7 +216,6 @@ def main():
         f.write("\n".join(results_lines))
 
     print(f"\n📁 Wyniki zapisano do: {RESULTS_FILE}")
-    print("✅ Gotowe.")
 
 
 if __name__ == "__main__":

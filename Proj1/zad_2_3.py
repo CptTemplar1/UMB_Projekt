@@ -122,19 +122,19 @@ def main():
 
     results_log = []
 
-    # --- Test 1: ZE STEMIZACJĄ ---
+    # Test 1: ZE STEMIZACJĄ
     print("🧠 Test 1: Z STEMIZACJĄ")
     acc_stem, cm_stem, time_stem = evaluate_model(train_entries, test_entries, use_stemming=True)
     print(f"🎯 Accuracy (stem): {acc_stem:.2f}% | ⏱ Czas: {time_stem:.2f}s")
     results_log.append(f"Test 1 (z stemizacją): accuracy={acc_stem:.2f}%, czas={time_stem:.2f}s")
 
-    # --- Test 2: BEZ STEMIZACJI ---
+    # Test 2: BEZ STEMIZACJI
     print("\n🧠 Test 2: BEZ STEMIZACJI")
     acc_no_stem, cm_no_stem, time_no_stem = evaluate_model(train_entries, test_entries, use_stemming=False)
     print(f"🎯 Accuracy (no stem): {acc_no_stem:.2f}% | ⏱ Czas: {time_no_stem:.2f}s")
     results_log.append(f"Test 2 (bez stemizacji): accuracy={acc_no_stem:.2f}%, czas={time_no_stem:.2f}s")
 
-    # --- Porównanie ---
+    # Porównanie wyników
     diff_acc = acc_stem - acc_no_stem
     diff_time = time_stem - time_no_stem
 
@@ -149,7 +149,7 @@ def main():
     print(summary)
     results_log.append(summary)
 
-    # --- Macierze konfuzji ---
+    # Macierze konfuzji
     matrix_report = (
         "\n📊 MACIERZ KONFUZJI (Z STEMIZACJĄ):\n"
         f"      spam      ham\n"
@@ -163,7 +163,7 @@ def main():
     print(matrix_report)
     results_log.append(matrix_report)
 
-    # --- Zapis wyników do pliku ---
+    # Zapis wyników do pliku
     with open(RESULTS_FILE, "w", encoding="utf-8") as f:
         f.write("\n".join(results_log))
 

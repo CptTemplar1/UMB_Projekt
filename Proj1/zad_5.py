@@ -36,9 +36,8 @@ def load_index(index_path):
                 entries.append((full_path, label))
     return entries
 
-
+# Wczytuje treść e-maila (temat + ciało) jako zwykły tekst
 def load_email_content(filepath):
-    """Wczytuje treść e-maila (temat + ciało) jako zwykły tekst."""
     try:
         with open(filepath, "r", encoding="latin-1") as f:
             msg = message_from_file(f)
@@ -62,9 +61,8 @@ def load_email_content(filepath):
     except Exception:
         return ""
 
-
+# Usuwa interpunkcję, stopwords i dokonuje stemizacji
 def preprocess_text(text):
-    """Usuwa interpunkcję, stopwords i dokonuje stemizacji."""
     text = text.lower()
     text = text.translate(str.maketrans("", "", string.punctuation))
     tokens = word_tokenize(text)
@@ -74,9 +72,8 @@ def preprocess_text(text):
     tokens = [stemmer.stem(t) for t in tokens]
     return " ".join(tokens)
 
-
+# Zwraca listę tekstów i etykiet (spam/ham), z opcjonalnym preprocessingiem.
 def prepare_data(entries, use_preprocessing=False):
-    """Zwraca listę tekstów i etykiet (spam/ham), z opcjonalnym preprocessingiem."""
     texts, labels = [], []
     for path, label in entries:
         text = load_email_content(path)
@@ -88,11 +85,8 @@ def prepare_data(entries, use_preprocessing=False):
 
 
 # === FUNKCJA EKSPERYMENTU ===
+#  Trenuje i testuje klasyfikator MultinomialNB dla zbioru TREC07P. Zwraca accuracy, macierz konfuzji i czas wykonania.
 def run_naive_bayes(train_entries, test_entries, use_preprocessing=False):
-    """
-    Trenuje i testuje klasyfikator MultinomialNB dla zbioru TREC07P.
-    Zwraca: accuracy, confusion_matrix, czas wykonania (s)
-    """
     print(f"\n🧠 Uruchamianie Naive Bayes ({'z preprocessingiem' if use_preprocessing else 'bez preprocessing'})...")
     start_time = time.time()
 
@@ -147,11 +141,11 @@ def main():
     # Wyniki
     results = []
 
-    # 1️⃣ Wersja bez preprocessing (pełny tekst)
+    # Wersja bez preprocessingu (pełny tekst)
     acc_raw, cm_raw, t_raw = run_naive_bayes(train_entries, test_entries, use_preprocessing=False)
     results.append(("Bez preprocessing", acc_raw, cm_raw, t_raw))
 
-    # 2️⃣ Wersja z preprocessingiem (usuwanie stopwords i stemizacja)
+    # Wersja z preprocessingiem (usuwanie stopwords i stemizacja)
     acc_clean, cm_clean, t_clean = run_naive_bayes(train_entries, test_entries, use_preprocessing=True)
     results.append(("Z preprocessingiem (NLTK)", acc_clean, cm_clean, t_clean))
 
@@ -166,8 +160,6 @@ def main():
             f.write(f"ham_spam={cm[1,0]:.2f}% ham_ham={cm[1,1]:.2f}%\n\n")
 
     print(f"\n📁 Wyniki zapisano do: {RESULTS_FILE}")
-    print("✅ Gotowe.")
-
 
 if __name__ == "__main__":
     main()
