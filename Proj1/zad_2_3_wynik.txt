@@ -1,25 +1,25 @@
 📂 Wczytywanie danych...
-🧠 Test 1: Z STEMIZACJĄ
+🧠 Test 1: ZE STEMIZACJĄ
 🎯 Accuracy (stem): 61.83% | ⏱ Czas: 2465.29s
 
 🧠 Test 2: BEZ STEMIZACJI
 🎯 Accuracy (no stem): 58.64% | ⏱ Czas: 239.89s
 
 📊 PORÓWNANIE WYNIKÓW
-Z stemizacją:    61.83% (2465.29s)
+Ze stemizacją:    61.83% (2465.29s)
 Bez stemizacji:  58.64% (239.89s)
 🧩 Różnica dokładności: +3.20%
 ⏱ Różnica czasu: +2225.39s (wartość dodatnia = wolniej ze stemizacją)
 
 
-📊 MACIERZ KONFUZJI (Z STEMIZACJĄ):
+📊 MACIERZ KONFUZJI (ZE STEMIZACJĄ):
       spam      ham
-spam   28.65%    38.07%
-ham     0.09%    33.18%
+spam  28.65%    38.07%
+ham   0.09%     33.18%
 
 📊 MACIERZ KONFUZJI (BEZ STEMIZACJI):
       spam      ham
-spam   25.45%    41.28%
-ham     0.09%    33.19%
+spam  25.45%    41.28%
+ham   0.09%     33.19%
 
 📁 Wyniki zapisano do pliku: results_stemming.txt

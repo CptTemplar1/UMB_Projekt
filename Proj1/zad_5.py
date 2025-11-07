@@ -15,13 +15,13 @@ from sklearn.metrics import confusion_matrix, accuracy_score
 import numpy as np
 
 # === KONFIGURACJA ===
-INDEX_PATH = "trec07p/full/index"
-DATA_PATH = "trec07p"
-TRAIN_RATIO = 0.8
-SAMPLE_SIZE = None  # ograniczenie liczby próbek, np. 2000 dla testów, None = całość
-RESULTS_FILE = "results_naive_bayes.txt"
+INDEX_PATH = "trec07p/full/index"       # ścieżka do indexu
+DATA_PATH = "trec07p"                   # ścieżka do danych
+TRAIN_RATIO = 0.8                       # stosunek danych treningowych do testowych
+SAMPLE_SIZE = None                      # ograniczenie liczby próbek, np. 2000 dla testów, None = całość
+RESULTS_FILE = "results_naive_bayes.txt"# nazwa pliku wynikowego
 
-random.seed(42)
+random.seed(42)                         # ustawienie ziarna losowości
 
 
 # === POMOCNICZE FUNKCJE ===
@@ -87,7 +87,7 @@ def prepare_data(entries, use_preprocessing=False):
 # === FUNKCJA EKSPERYMENTU ===
 #  Trenuje i testuje klasyfikator MultinomialNB dla zbioru TREC07P. Zwraca accuracy, macierz konfuzji i czas wykonania.
 def run_naive_bayes(train_entries, test_entries, use_preprocessing=False):
-    print(f"\n🧠 Uruchamianie Naive Bayes ({'z preprocessingiem' if use_preprocessing else 'bez preprocessing'})...")
+    print(f"\n🧠 Uruchamianie Naive Bayes ({'z preprocessingiem' if use_preprocessing else 'Bez preprocessingu'})...")
     start_time = time.time()
 
     # Przygotowanie danych
@@ -114,7 +114,7 @@ def run_naive_bayes(train_entries, test_entries, use_preprocessing=False):
     acc = accuracy_score(y_test, y_pred) * 100
 
     # Wyświetlenie wyników
-    print(f"🎯 Accuracy: {acc:.2f}% | Czas wykonania: {elapsed:.2f}s")
+    print(f"🎯 Accuracy: {acc:.2f}% | ⏱ Czas wykonania: {elapsed:.2f}s")
     print("📊 Confusion matrix (%):")
     print(f"      spam      ham")
     print(f"spam  {cm_percent[0,0]:6.2f}%   {cm_percent[0,1]:6.2f}%")
@@ -131,7 +131,7 @@ def main():
 
     if SAMPLE_SIZE:
         index_entries = index_entries[:SAMPLE_SIZE]
-        print(f"⚠️ SAMPLE_SIZE active: using first {len(index_entries)} entries")
+        print(f"⚠️ SAMPLE_SIZE aktywne. Wykorzystuję {len(index_entries)} pierwszych wpisów")
 
     split_point = int(len(index_entries) * TRAIN_RATIO)
     train_entries = index_entries[:split_point]
@@ -143,7 +143,7 @@ def main():
 
     # Wersja bez preprocessingu (pełny tekst)
     acc_raw, cm_raw, t_raw = run_naive_bayes(train_entries, test_entries, use_preprocessing=False)
-    results.append(("Bez preprocessing", acc_raw, cm_raw, t_raw))
+    results.append(("Bez preprocessingu", acc_raw, cm_raw, t_raw))
 
     # Wersja z preprocessingiem (usuwanie stopwords i stemizacja)
     acc_clean, cm_clean, t_clean = run_naive_bayes(train_entries, test_entries, use_preprocessing=True)

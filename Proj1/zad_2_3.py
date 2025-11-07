@@ -10,12 +10,13 @@ from sklearn.metrics import confusion_matrix, accuracy_score
 import numpy as np
 
 # === KONFIGURACJA ===
-INDEX_PATH = "trec07p/full/index"
-DATA_PATH = "trec07p"
-TRAIN_RATIO = 0.8
-TOP_N = 100        # liczba słów w blacklist
-SAMPLE_SIZE = None # ograniczenie liczby próbek, np. 2000 dla testów, None = całość
-RESULTS_FILE = "results_stemming.txt"
+INDEX_PATH = "trec07p/full/index"       # ścieżka do indexu
+DATA_PATH = "trec07p"                   # ścieżka do danych
+TRAIN_RATIO = 0.8                       # stosunek danych treningowych do testowych
+TOP_N = 100                             # liczba słów w blacklist
+SAMPLE_SIZE = None                      # ograniczenie liczby próbek, np. 2000 dla testów, None = całość
+RESULTS_FILE = "results_stemming.txt"   # nazwa pliku wynikowego
+
 
 # === FUNKCJE ===
 def load_index(index_path):
@@ -123,10 +124,10 @@ def main():
     results_log = []
 
     # Test 1: ZE STEMIZACJĄ
-    print("🧠 Test 1: Z STEMIZACJĄ")
+    print("🧠 Test 1: ZE STEMIZACJĄ")
     acc_stem, cm_stem, time_stem = evaluate_model(train_entries, test_entries, use_stemming=True)
     print(f"🎯 Accuracy (stem): {acc_stem:.2f}% | ⏱ Czas: {time_stem:.2f}s")
-    results_log.append(f"Test 1 (z stemizacją): accuracy={acc_stem:.2f}%, czas={time_stem:.2f}s")
+    results_log.append(f"Test 1 (ze stemizacją): accuracy={acc_stem:.2f}%, czas={time_stem:.2f}s")
 
     # Test 2: BEZ STEMIZACJI
     print("\n🧠 Test 2: BEZ STEMIZACJI")
@@ -140,7 +141,7 @@ def main():
 
     summary = (
         "\n📊 PORÓWNANIE WYNIKÓW\n"
-        f"Z stemizacją:    {acc_stem:.2f}% ({time_stem:.2f}s)\n"
+        f"ZE stemizacją:    {acc_stem:.2f}% ({time_stem:.2f}s)\n"
         f"Bez stemizacji:  {acc_no_stem:.2f}% ({time_no_stem:.2f}s)\n"
         f"🧩 Różnica dokładności: {diff_acc:+.2f}%\n"
         f"⏱ Różnica czasu: {diff_time:+.2f}s (wartość dodatnia = wolniej ze stemizacją)\n"
@@ -151,7 +152,7 @@ def main():
 
     # Macierze konfuzji
     matrix_report = (
-        "\n📊 MACIERZ KONFUZJI (Z STEMIZACJĄ):\n"
+        "\n📊 MACIERZ KONFUZJI (ZE STEMIZACJĄ):\n"
         f"      spam      ham\n"
         f"spam  {cm_stem[0,0]:6.2f}%   {cm_stem[0,1]:6.2f}%\n"
         f"ham   {cm_stem[1,0]:6.2f}%   {cm_stem[1,1]:6.2f}%\n\n"

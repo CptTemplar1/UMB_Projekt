@@ -14,20 +14,20 @@ from sklearn.metrics import confusion_matrix, accuracy_score
 import numpy as np
 
 # === KONFIGURACJA ===
-INDEX_PATH = "trec07p/full/index"
-DATA_PATH = "trec07p"
-TRAIN_RATIO = 0.8
-SAMPLE_SIZE = None  # ograniczenie liczby próbek, np. 2000 dla testów, None = całość
-RESULTS_FILE = "results_lsh.txt"
+INDEX_PATH = "trec07p/full/index"       # ścieżka do indexu
+DATA_PATH = "trec07p"                   # ścieżka do danych
+TRAIN_RATIO = 0.8                       # stosunek danych treningowych do testowych
+SAMPLE_SIZE = None                      # ograniczenie liczby próbek, np. 2000 dla testów, None = całość
+RESULTS_FILE = "results_lsh.txt"        # nazwa pliku wynikowego
 
 # Parametry LSH / MinHash
-NUM_PERM = 128
-SHINGLE_SIZE = 3  # rozmiar shingli (k-gramów)
-USE_STEMMING = True  # czy stosować stemizację
+NUM_PERM = 128                          # liczba permutacji w MinHash
+SHINGLE_SIZE = 3                        # rozmiar shingli (k-gramów)
+USE_STEMMING = True                     # czy stosować stemizację
 THRESHOLDS = [0.1, 0.3, 0.5, 0.7, 0.9]  # testowane progi LSH
-DEFAULT_LABEL = "ham" # etykieta domyślna, gdy brak dopasowań w LSH
+DEFAULT_LABEL = "ham"                   # etykieta domyślna, gdy brak dopasowań w LSH
 
-random.seed(42)
+random.seed(42)                         # ustawienie ziarna losowości
 
 
 # === POMOCNICZE FUNKCJE ===
@@ -153,7 +153,7 @@ def main():
 
     if SAMPLE_SIZE:
         index_entries = index_entries[:SAMPLE_SIZE]
-        print(f"⚠️ SAMPLE_SIZE active: using first {len(index_entries)} entries")
+        print(f"⚠️ SAMPLE_SIZE aktywne. Wykorzystuję {len(index_entries)} pierwszych wpisów")
 
     split_point = int(len(index_entries) * TRAIN_RATIO)
     train_entries = index_entries[:split_point]
@@ -198,7 +198,7 @@ def main():
         acc = accuracy_score(y_true, y_pred) * 100
 
         # raport w konsoli
-        print(f"🎯 Accuracy: {acc:.2f}% | build_time: {build_time:.2f}s | classify_time: {elapsed:.2f}s")
+        print(f"🎯 Accuracy: {acc:.2f}% | ⏱ Czas tworzenia LSH: {build_time:.2f}s | ⏱ Czas klasyfikacji LSH: {elapsed:.2f}s")
         print("📊 Confusion matrix (%):")
         print(f"      spam      ham")
         print(f"spam  {cm_percent[0,0]:6.2f}%   {cm_percent[0,1]:6.2f}%")

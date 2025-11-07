@@ -11,6 +11,40 @@ https://plg.uwaterloo.ca/~gvcormac/treccorpus07/
 
 #### Wyniki
 
+Pomyślnie pobrano i rozpakowano archiwum `TREC 2007 Public Corpus`, które będzie wykorzystywane w dalszych zadaniach projektu. Ze względu na rozmiar archiwum (około 450 MB) oraz potencjalnie niebezpieczną zawartość wiadomości spam (które mogą zawierać złośliwe linki lub nieodpowiednie treści), archiwum zostało wykluczone z repozytorium Git poprzez dodanie do pliku `.gitignore`.
+
+**Archiwum TREC 2007**  
+TREC 2007 Public Corpus to publicznie dostępne archiwum wiadomości email używane do badań nad filtrowaniem spamu. Zbiór został opracowany w ramach Text Retrieval Conference (TREC) i stanowi standardowy benchmark do testowania algorytmów klasyfikacji wiadomości email.
+
+Archiwum posiada następującą strukturę katalogów:  
+trec07p/  
+├── data/ - Główny folder z wiadomościami  
+├── full/ - Folder z pełnym indeksem  
+├── delay/ - Dane feedback tylko dla pierwszych 10,000 wiadomości  
+└── partial/ - Dane feedback tylko dla 30,388 wiadomości odpowiadających 1 odbiorcy
+
+**Folder `data/`**:
+- Zawiera 75,419 wiadomości email w postaci plików tekstowych
+- Pliki mają nazwy w formacie `inmail.X`, gdzie X to liczba od 1 do 75419
+- Każdy plik zawiera pełną wiadomość email w formacie MIME
+
+**Folder `full/`**:
+- Zawiera plik `index` będący słownikiem klasyfikacji
+- Format wpisów: `[etykieta] [ścieżka_do_pliku]`, np. `spam ../data/inmail.1`
+- Etykiety: "spam" (niechciane wiadomości) lub "ham" (pożądane wiadomości)
+
+**Foldery dodatkowe (nieużywane w projekcie)**:
+- `delay/` - zawiera dane feedback tylko dla pierwszych 10,000 wiadomości
+- `partial/` - zawiera dane feedback tylko dla 30,388 wiadomości odpowiadających jednemu odbiorcy
+
+---
+
+**Statystyki zbioru danych**:
+- **Łączna liczba wiadomości**: 75,419
+- **Wiadomości ham (pożądane)**: 25,220 (33.4%)
+- **Wiadomości spam (niechciane)**: 50,199 (66.6%)
+- **Rozkład**: Przewaga wiadomości spam
+
 ### Zadanie 2
 Wykorzystując informacje z wykładu oraz stosując technikę zakazanych słów kluczowych (blacklist), dokonać klasyfikacji binarnej wiadomości z archiwum z podziałem na: spam (wiadomości typu spam) oraz ham (wiadomości pożądane).
 
@@ -25,9 +59,11 @@ postaci procentowej.
 
 #### Implementacja
 
-Kod jest taki sam dla zadań 2 i 3
+Ze względu na fakt, że kod implementujący zadania 2 i 3 jest ze sobą ściśle powiązany, to pełna implementacja obu zadań została umieszczona w rozdziale **implementacja** zadania 3. 
 
 #### Wyniki
+
+Podobnie jak implementacja, wyniki obu zadań 2 i 3 zostały przedstawione w rozdziale **wyniki** zadania 3, ponieważ kod programu zwraca wyniki obu zadań jednocześnie.
 
 ### Zadanie 3
 Zweryfikować wpływ stemizacji na pracę algorytmu zadania drugiego a następnie porównać uzyskane wyniki.
@@ -36,16 +72,16 @@ Zweryfikować wpływ stemizacji na pracę algorytmu zadania drugiego a następni
 
 **1. Konfiguracja globalna**
 
-...
+Na wstępie programu znajduje się kod, który definiuje stałe konfiguracyjne używane w całym programie. Ułatwia to dostosowanie parametrów bez konieczności modyfikowania logiki programu.
 
 **Kod:**
 ``` python
-INDEX_PATH = "trec07p/full/index"
-DATA_PATH = "trec07p"
-TRAIN_RATIO = 0.8
-TOP_N = 100        # liczba słów w blacklist
-SAMPLE_SIZE = None # ograniczenie liczby próbek, np. 2000 dla testów, None = całość
-RESULTS_FILE = "results_stemming.txt"
+INDEX_PATH = "trec07p/full/index"       # ścieżka do indexu
+DATA_PATH = "trec07p"                   # ścieżka do danych
+TRAIN_RATIO = 0.8                       # stosunek danych treningowych do testowych
+TOP_N = 100                             # liczba słów w blacklist
+SAMPLE_SIZE = None                      # ograniczenie liczby próbek, np. 2000 dla testów, None = całość
+RESULTS_FILE = "results_stemming.txt"   # nazwa pliku wynikowego
 ```
 
 **2. Funkcja `load_index`**
@@ -262,10 +298,10 @@ def main():
     results_log = []
 
     # Test 1: ZE STEMIZACJĄ
-    print("🧠 Test 1: Z STEMIZACJĄ")
+    print("🧠 Test 1: ZE STEMIZACJĄ")
     acc_stem, cm_stem, time_stem = evaluate_model(train_entries, test_entries, use_stemming=True)
     print(f"🎯 Accuracy (stem): {acc_stem:.2f}% | ⏱ Czas: {time_stem:.2f}s")
-    results_log.append(f"Test 1 (z stemizacją): accuracy={acc_stem:.2f}%, czas={time_stem:.2f}s")
+    results_log.append(f"Test 1 (ze stemizacją): accuracy={acc_stem:.2f}%, czas={time_stem:.2f}s")
 
     # Test 2: BEZ STEMIZACJI
     print("\n🧠 Test 2: BEZ STEMIZACJI")
@@ -279,7 +315,7 @@ def main():
 
     summary = (
         "\n📊 PORÓWNANIE WYNIKÓW\n"
-        f"Z stemizacją:    {acc_stem:.2f}% ({time_stem:.2f}s)\n"
+        f"Ze stemizacją:    {acc_stem:.2f}% ({time_stem:.2f}s)\n"
         f"Bez stemizacji:  {acc_no_stem:.2f}% ({time_no_stem:.2f}s)\n"
         f"🧩 Różnica dokładności: {diff_acc:+.2f}%\n"
         f"⏱ Różnica czasu: {diff_time:+.2f}s (wartość dodatnia = wolniej ze stemizacją)\n"
@@ -290,7 +326,7 @@ def main():
 
     # Macierze konfuzji
     matrix_report = (
-        "\n📊 MACIERZ KONFUZJI (Z STEMIZACJĄ):\n"
+        "\n📊 MACIERZ KONFUZJI (ZE STEMIZACJĄ):\n"
         f"      spam      ham\n"
         f"spam  {cm_stem[0,0]:6.2f}%   {cm_stem[0,1]:6.2f}%\n"
         f"ham   {cm_stem[1,0]:6.2f}%   {cm_stem[1,1]:6.2f}%\n\n"
@@ -328,12 +364,13 @@ from sklearn.metrics import confusion_matrix, accuracy_score
 import numpy as np
 
 # === KONFIGURACJA ===
-INDEX_PATH = "trec07p/full/index"
-DATA_PATH = "trec07p"
-TRAIN_RATIO = 0.8
-TOP_N = 100        # liczba słów w blacklist
-SAMPLE_SIZE = None # ograniczenie liczby próbek, np. 2000 dla testów, None = całość
-RESULTS_FILE = "results_stemming.txt"
+INDEX_PATH = "trec07p/full/index"       # ścieżka do indexu
+DATA_PATH = "trec07p"                   # ścieżka do danych
+TRAIN_RATIO = 0.8                       # stosunek danych treningowych do testowych
+TOP_N = 100                             # liczba słów w blacklist
+SAMPLE_SIZE = None                      # ograniczenie liczby próbek, np. 2000 dla testów, None = całość
+RESULTS_FILE = "results_stemming.txt"   # nazwa pliku wynikowego
+
 
 # === FUNKCJE ===
 def load_index(index_path):
@@ -441,10 +478,10 @@ def main():
     results_log = []
 
     # Test 1: ZE STEMIZACJĄ
-    print("🧠 Test 1: Z STEMIZACJĄ")
+    print("🧠 Test 1: ZE STEMIZACJĄ")
     acc_stem, cm_stem, time_stem = evaluate_model(train_entries, test_entries, use_stemming=True)
     print(f"🎯 Accuracy (stem): {acc_stem:.2f}% | ⏱ Czas: {time_stem:.2f}s")
-    results_log.append(f"Test 1 (z stemizacją): accuracy={acc_stem:.2f}%, czas={time_stem:.2f}s")
+    results_log.append(f"Test 1 (ze stemizacją): accuracy={acc_stem:.2f}%, czas={time_stem:.2f}s")
 
     # Test 2: BEZ STEMIZACJI
     print("\n🧠 Test 2: BEZ STEMIZACJI")
@@ -458,7 +495,7 @@ def main():
 
     summary = (
         "\n📊 PORÓWNANIE WYNIKÓW\n"
-        f"Z stemizacją:    {acc_stem:.2f}% ({time_stem:.2f}s)\n"
+        f"ZE stemizacją:    {acc_stem:.2f}% ({time_stem:.2f}s)\n"
         f"Bez stemizacji:  {acc_no_stem:.2f}% ({time_no_stem:.2f}s)\n"
         f"🧩 Różnica dokładności: {diff_acc:+.2f}%\n"
         f"⏱ Różnica czasu: {diff_time:+.2f}s (wartość dodatnia = wolniej ze stemizacją)\n"
@@ -469,7 +506,7 @@ def main():
 
     # Macierze konfuzji
     matrix_report = (
-        "\n📊 MACIERZ KONFUZJI (Z STEMIZACJĄ):\n"
+        "\n📊 MACIERZ KONFUZJI (ZE STEMIZACJĄ):\n"
         f"      spam      ham\n"
         f"spam  {cm_stem[0,0]:6.2f}%   {cm_stem[0,1]:6.2f}%\n"
         f"ham   {cm_stem[1,0]:6.2f}%   {cm_stem[1,1]:6.2f}%\n\n"
@@ -494,6 +531,34 @@ if __name__ == "__main__":
 
 #### Wyniki
 
+```text
+📂 Wczytywanie danych...
+🧠 Test 1: ZE STEMIZACJĄ
+🎯 Accuracy (stem): 61.83% | ⏱ Czas: 2465.29s
+
+🧠 Test 2: BEZ STEMIZACJI
+🎯 Accuracy (no stem): 58.64% | ⏱ Czas: 239.89s
+
+📊 PORÓWNANIE WYNIKÓW
+Ze stemizacją:    61.83% (2465.29s)
+Bez stemizacji:  58.64% (239.89s)
+🧩 Różnica dokładności: +3.20%
+⏱ Różnica czasu: +2225.39s (wartość dodatnia = wolniej ze stemizacją)
+
+
+📊 MACIERZ KONFUZJI (ZE STEMIZACJĄ):
+      spam      ham
+spam  28.65%    38.07%
+ham   0.09%     33.18%
+
+📊 MACIERZ KONFUZJI (BEZ STEMIZACJI):
+      spam      ham
+spam  25.45%    41.28%
+ham   0.09%     33.19%
+
+📁 Wyniki zapisano do pliku: results_stemming.txt
+```
+
 ### Zadanie 4
 Dokonać klasyfikacji binarnej wiadomości z archiwum (zadanie 1) na spam i ham, stosując algorytmy rozmytego haszowania.
 
@@ -507,24 +572,24 @@ Dokonać klasyfikacji binarnej wiadomości z archiwum (zadanie 1) na spam i ham,
 
 **1. Konfiguracja globalna**
 
-...
+Na wstępie programu znajduje się kod, który definiuje stałe konfiguracyjne używane w całym programie. Ułatwia to dostosowanie parametrów bez konieczności modyfikowania logiki programu.
 
 **Kod:**  
 ``` python
-INDEX_PATH = "trec07p/full/index"
-DATA_PATH = "trec07p"
-TRAIN_RATIO = 0.8
-SAMPLE_SIZE = None  # ograniczenie liczby próbek, np. 2000 dla testów, None = całość
-RESULTS_FILE = "results_lsh.txt"
+INDEX_PATH = "trec07p/full/index"       # ścieżka do indexu
+DATA_PATH = "trec07p"                   # ścieżka do danych
+TRAIN_RATIO = 0.8                       # stosunek danych treningowych do testowych
+SAMPLE_SIZE = None                      # ograniczenie liczby próbek, np. 2000 dla testów, None = całość
+RESULTS_FILE = "results_lsh.txt"        # nazwa pliku wynikowego
 
 # Parametry LSH / MinHash
-NUM_PERM = 128
-SHINGLE_SIZE = 3  # rozmiar shingli (k-gramów)
-USE_STEMMING = True  # czy stosować stemizację
+NUM_PERM = 128                          # liczba permutacji w MinHash
+SHINGLE_SIZE = 3                        # rozmiar shingli (k-gramów)
+USE_STEMMING = True                     # czy stosować stemizację
 THRESHOLDS = [0.1, 0.3, 0.5, 0.7, 0.9]  # testowane progi LSH
-DEFAULT_LABEL = "ham" # etykieta domyślna, gdy brak dopasowań w LSH
+DEFAULT_LABEL = "ham"                   # etykieta domyślna, gdy brak dopasowań w LSH
 
-random.seed(42)
+random.seed(42)                         # ustawienie ziarna losowości
 ```
 
 **2. Funkcja `load_index`**
@@ -773,7 +838,7 @@ def main():
 
     if SAMPLE_SIZE:
         index_entries = index_entries[:SAMPLE_SIZE]
-        print(f"⚠️ SAMPLE_SIZE active: using first {len(index_entries)} entries")
+        print(f"⚠️ SAMPLE_SIZE aktywne. Wykorzystuję {len(index_entries)} pierwszych wpisów")
 
     split_point = int(len(index_entries) * TRAIN_RATIO)
     train_entries = index_entries[:split_point]
@@ -818,7 +883,7 @@ def main():
         acc = accuracy_score(y_true, y_pred) * 100
 
         # raport w konsoli
-        print(f"🎯 Accuracy: {acc:.2f}% | build_time: {build_time:.2f}s | classify_time: {elapsed:.2f}s")
+        print(f"🎯 Accuracy: {acc:.2f}% | ⏱ Czas tworzenia LSH: {build_time:.2f}s | ⏱ Czas klasyfikacji LSH: {elapsed:.2f}s")
         print("📊 Confusion matrix (%):")
         print(f"      spam      ham")
         print(f"spam  {cm_percent[0,0]:6.2f}%   {cm_percent[0,1]:6.2f}%")
@@ -861,20 +926,20 @@ from sklearn.metrics import confusion_matrix, accuracy_score
 import numpy as np
 
 # === KONFIGURACJA ===
-INDEX_PATH = "trec07p/full/index"
-DATA_PATH = "trec07p"
-TRAIN_RATIO = 0.8
-SAMPLE_SIZE = None  # ograniczenie liczby próbek, np. 2000 dla testów, None = całość
-RESULTS_FILE = "results_lsh.txt"
+INDEX_PATH = "trec07p/full/index"       # ścieżka do indexu
+DATA_PATH = "trec07p"                   # ścieżka do danych
+TRAIN_RATIO = 0.8                       # stosunek danych treningowych do testowych
+SAMPLE_SIZE = None                      # ograniczenie liczby próbek, np. 2000 dla testów, None = całość
+RESULTS_FILE = "results_lsh.txt"        # nazwa pliku wynikowego
 
 # Parametry LSH / MinHash
-NUM_PERM = 128
-SHINGLE_SIZE = 3  # rozmiar shingli (k-gramów)
-USE_STEMMING = True  # czy stosować stemizację
+NUM_PERM = 128                          # liczba permutacji w MinHash
+SHINGLE_SIZE = 3                        # rozmiar shingli (k-gramów)
+USE_STEMMING = True                     # czy stosować stemizację
 THRESHOLDS = [0.1, 0.3, 0.5, 0.7, 0.9]  # testowane progi LSH
-DEFAULT_LABEL = "ham" # etykieta domyślna, gdy brak dopasowań w LSH
+DEFAULT_LABEL = "ham"                   # etykieta domyślna, gdy brak dopasowań w LSH
 
-random.seed(42)
+random.seed(42)                         # ustawienie ziarna losowości
 
 
 # === POMOCNICZE FUNKCJE ===
@@ -1000,7 +1065,7 @@ def main():
 
     if SAMPLE_SIZE:
         index_entries = index_entries[:SAMPLE_SIZE]
-        print(f"⚠️ SAMPLE_SIZE active: using first {len(index_entries)} entries")
+        print(f"⚠️ SAMPLE_SIZE aktywne. Wykorzystuję {len(index_entries)} pierwszych wpisów")
 
     split_point = int(len(index_entries) * TRAIN_RATIO)
     train_entries = index_entries[:split_point]
@@ -1045,7 +1110,7 @@ def main():
         acc = accuracy_score(y_true, y_pred) * 100
 
         # raport w konsoli
-        print(f"🎯 Accuracy: {acc:.2f}% | build_time: {build_time:.2f}s | classify_time: {elapsed:.2f}s")
+        print(f"🎯 Accuracy: {acc:.2f}% | ⏱ Czas tworzenia LSH: {build_time:.2f}s | ⏱ Czas klasyfikacji LSH: {elapsed:.2f}s")
         print("📊 Confusion matrix (%):")
         print(f"      spam      ham")
         print(f"spam  {cm_percent[0,0]:6.2f}%   {cm_percent[0,1]:6.2f}%")
@@ -1071,6 +1136,55 @@ if __name__ == "__main__":
 
 #### Wyniki
 
+``` text
+📂 Wczytywanie indexu i danych...
+Łącznie: 75419 dokumentów; trening: 60335; test: 15084
+🧠 Budowanie MinHash dla zbioru treningowego...
+Gotowe. Czas przygotowania MinHash treningu: 452.07s
+
+🔎 Test dla threshold = 0.1
+LSH zbudowano w 9.47s
+🎯 Accuracy: 94.50% | ⏱ Czas tworzenia LSH: 9.47s | ⏱ Czas klasyfikacji LSH: 129.05s
+📊 Confusion matrix (%):
+      spam      ham
+spam  60.55%    5.32%
+ham   0.18%     33.94%
+
+🔎 Test dla threshold = 0.3
+LSH zbudowano w 6.92s
+🎯 Accuracy: 88.80% | ⏱ Czas tworzenia LSH: 6.92s | ⏱ Czas klasyfikacji LSH: 120.82s
+📊 Confusion matrix (%):
+      spam      ham
+spam  54.76%    11.12%
+ham   0.09%     34.04%
+
+🔎 Test dla threshold = 0.5
+LSH zbudowano w 4.78s
+🎯 Accuracy: 79.14% | ⏱ Czas tworzenia LSH: 4.78s | ⏱ Czas klasyfikacji LSH: 118.51s
+📊 Confusion matrix (%):
+      spam      ham
+spam  45.09%    20.79%
+ham   0.07%     34.06%
+
+🔎 Test dla threshold = 0.7
+LSH zbudowano w 3.11s
+🎯 Accuracy: 70.72% | ⏱ Czas tworzenia LSH: 3.11s | ⏱ Czas klasyfikacji LSH: 116.56s
+📊 Confusion matrix (%):
+      spam      ham
+spam  36.65%    29.23%
+ham   0.05%     34.07%
+
+🔎 Test dla threshold = 0.9
+LSH zbudowano w 1.53s
+🎯 Accuracy: 62.70% | ⏱ Czas tworzenia LSH: 1.53s | ⏱ Czas klasyfikacji LSH: 115.94s
+📊 Confusion matrix (%):
+      spam      ham
+spam  28.61%    37.26%
+ham   0.04%     34.08%
+
+📁 Wyniki zapisano do: results_lsh.txt
+```
+
 ### Zadanie 5
 Dokonać klasyfikacji binarnej wiadomości z archiwum (zadanie 1) na spam i ham, stosując algorytm Naive Bayes.
 
@@ -1086,17 +1200,17 @@ Dokonać klasyfikacji binarnej wiadomości z archiwum (zadanie 1) na spam i ham,
 
 **1. Konfiguracja globalna**
 
-...
+Na wstępie programu znajduje się kod, który definiuje stałe konfiguracyjne używane w całym programie. Ułatwia to dostosowanie parametrów bez konieczności modyfikowania logiki programu.
 
 **Kod:**  
 ``` python
-INDEX_PATH = "trec07p/full/index"
-DATA_PATH = "trec07p"
-TRAIN_RATIO = 0.8
-SAMPLE_SIZE = None  # ograniczenie liczby próbek, np. 2000 dla testów, None = całość
-RESULTS_FILE = "results_naive_bayes.txt"
+INDEX_PATH = "trec07p/full/index"       # ścieżka do indexu
+DATA_PATH = "trec07p"                   # ścieżka do danych
+TRAIN_RATIO = 0.8                       # stosunek danych treningowych do testowych
+SAMPLE_SIZE = None                      # ograniczenie liczby próbek, np. 2000 dla testów, None = całość
+RESULTS_FILE = "results_naive_bayes.txt"# nazwa pliku wynikowego
 
-random.seed(42)
+random.seed(42)                         # ustawienie ziarna losowości
 ```
 
 **2. Funkcja `load_index`**
@@ -1238,7 +1352,7 @@ Funkcja przeprowadza pełny eksperyment z klasyfikatorem Naive Bayes: przygotowu
 **Kod:**  
 ``` python
 def run_naive_bayes(train_entries, test_entries, use_preprocessing=False):
-    print(f"\n🧠 Uruchamianie Naive Bayes ({'z preprocessingiem' if use_preprocessing else 'bez preprocessing'})...")
+    print(f"\n🧠 Uruchamianie Naive Bayes ({'z preprocessingiem' if use_preprocessing else 'Bez preprocessingu'})...")
     start_time = time.time()
 
     # Przygotowanie danych
@@ -1265,7 +1379,7 @@ def run_naive_bayes(train_entries, test_entries, use_preprocessing=False):
     acc = accuracy_score(y_test, y_pred) * 100
 
     # Wyświetlenie wyników
-    print(f"🎯 Accuracy: {acc:.2f}% | Czas wykonania: {elapsed:.2f}s")
+    print(f"🎯 Accuracy: {acc:.2f}% | ⏱ Czas wykonania: {elapsed:.2f}s")
     print("📊 Confusion matrix (%):")
     print(f"      spam      ham")
     print(f"spam  {cm_percent[0,0]:6.2f}%   {cm_percent[0,1]:6.2f}%")
@@ -1296,7 +1410,7 @@ def main():
 
     if SAMPLE_SIZE:
         index_entries = index_entries[:SAMPLE_SIZE]
-        print(f"⚠️ SAMPLE_SIZE active: using first {len(index_entries)} entries")
+        print(f"⚠️ SAMPLE_SIZE aktywne. Wykorzystuję {len(index_entries)} pierwszych wpisów")
 
     split_point = int(len(index_entries) * TRAIN_RATIO)
     train_entries = index_entries[:split_point]
@@ -1308,7 +1422,7 @@ def main():
 
     # Wersja bez preprocessingu (pełny tekst)
     acc_raw, cm_raw, t_raw = run_naive_bayes(train_entries, test_entries, use_preprocessing=False)
-    results.append(("Bez preprocessing", acc_raw, cm_raw, t_raw))
+    results.append(("Bez preprocessingu", acc_raw, cm_raw, t_raw))
 
     # Wersja z preprocessingiem (usuwanie stopwords i stemizacja)
     acc_clean, cm_clean, t_clean = run_naive_bayes(train_entries, test_entries, use_preprocessing=True)
@@ -1351,13 +1465,13 @@ from sklearn.metrics import confusion_matrix, accuracy_score
 import numpy as np
 
 # === KONFIGURACJA ===
-INDEX_PATH = "trec07p/full/index"
-DATA_PATH = "trec07p"
-TRAIN_RATIO = 0.8
-SAMPLE_SIZE = None  # ograniczenie liczby próbek, np. 2000 dla testów, None = całość
-RESULTS_FILE = "results_naive_bayes.txt"
+INDEX_PATH = "trec07p/full/index"       # ścieżka do indexu
+DATA_PATH = "trec07p"                   # ścieżka do danych
+TRAIN_RATIO = 0.8                       # stosunek danych treningowych do testowych
+SAMPLE_SIZE = None                      # ograniczenie liczby próbek, np. 2000 dla testów, None = całość
+RESULTS_FILE = "results_naive_bayes.txt"# nazwa pliku wynikowego
 
-random.seed(42)
+random.seed(42)                         # ustawienie ziarna losowości
 
 
 # === POMOCNICZE FUNKCJE ===
@@ -1423,7 +1537,7 @@ def prepare_data(entries, use_preprocessing=False):
 # === FUNKCJA EKSPERYMENTU ===
 #  Trenuje i testuje klasyfikator MultinomialNB dla zbioru TREC07P. Zwraca accuracy, macierz konfuzji i czas wykonania.
 def run_naive_bayes(train_entries, test_entries, use_preprocessing=False):
-    print(f"\n🧠 Uruchamianie Naive Bayes ({'z preprocessingiem' if use_preprocessing else 'bez preprocessing'})...")
+    print(f"\n🧠 Uruchamianie Naive Bayes ({'z preprocessingiem' if use_preprocessing else 'Bez preprocessingu'})...")
     start_time = time.time()
 
     # Przygotowanie danych
@@ -1450,7 +1564,7 @@ def run_naive_bayes(train_entries, test_entries, use_preprocessing=False):
     acc = accuracy_score(y_test, y_pred) * 100
 
     # Wyświetlenie wyników
-    print(f"🎯 Accuracy: {acc:.2f}% | Czas wykonania: {elapsed:.2f}s")
+    print(f"🎯 Accuracy: {acc:.2f}% | ⏱ Czas wykonania: {elapsed:.2f}s")
     print("📊 Confusion matrix (%):")
     print(f"      spam      ham")
     print(f"spam  {cm_percent[0,0]:6.2f}%   {cm_percent[0,1]:6.2f}%")
@@ -1467,7 +1581,7 @@ def main():
 
     if SAMPLE_SIZE:
         index_entries = index_entries[:SAMPLE_SIZE]
-        print(f"⚠️ SAMPLE_SIZE active: using first {len(index_entries)} entries")
+        print(f"⚠️ SAMPLE_SIZE aktywne. Wykorzystuję {len(index_entries)} pierwszych wpisów")
 
     split_point = int(len(index_entries) * TRAIN_RATIO)
     train_entries = index_entries[:split_point]
@@ -1479,7 +1593,7 @@ def main():
 
     # Wersja bez preprocessingu (pełny tekst)
     acc_raw, cm_raw, t_raw = run_naive_bayes(train_entries, test_entries, use_preprocessing=False)
-    results.append(("Bez preprocessing", acc_raw, cm_raw, t_raw))
+    results.append(("Bez preprocessingu", acc_raw, cm_raw, t_raw))
 
     # Wersja z preprocessingiem (usuwanie stopwords i stemizacja)
     acc_clean, cm_clean, t_clean = run_naive_bayes(train_entries, test_entries, use_preprocessing=True)
@@ -1503,4 +1617,25 @@ if __name__ == "__main__":
 
 
 #### Wyniki
+
+``` text
+📂 Wczytywanie danych...
+Łącznie: 75419 dokumentów; trening: 60335; test: 15084
+
+🧠 Uruchamianie Naive Bayes (Bez preprocessingu)...
+🎯 Accuracy: 99.24% | ⏱ Czas wykonania: 69.66s
+📊 Confusion matrix (%):
+      spam      ham
+spam  65.46%    0.42%
+ham   0.34%     33.78%
+
+🧠 Uruchamianie Naive Bayes (z preprocessingiem)...
+🎯 Accuracy: 98.72% | ⏱ Czas wykonania: 381.12s
+📊 Confusion matrix (%):
+      spam      ham
+spam  64.85%    1.03%
+ham   0.25%     33.87%
+
+📁 Wyniki zapisano do: results_naive_bayes.txt
+```
 
