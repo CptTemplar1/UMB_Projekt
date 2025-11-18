@@ -1,0 +1,55 @@
+2025-11-18 13:58:37.944331: I tensorflow/core/util/port.cc:153] oneDNN custom operations are on. You may see slightly different numerical results due to floating-point round-off errors from different computation orders. To turn them off, set the environment variable `TF_ENABLE_ONEDNN_OPTS=0`.
+2025-11-18 13:58:40.553254: I tensorflow/core/util/port.cc:153] oneDNN custom operations are on. You may see slightly different numerical results due to floating-point round-off errors from different computation orders. To turn them off, set the environment variable `TF_ENABLE_ONEDNN_OPTS=0`.
+📂 Wczytywanie danych...
+🧾 Przygotowanie korpusu tekstów (preprocessing = True)...
+Przygotowano 75419 dokumentów.
+Trening: 60335, Test: 15084
+🔤 Tworzenie TF-IDF (max_features=20000)...
+Konwersja do macierzy gęstych...
+Input dim = 20000
+
+=== Model: small | layers=[64] | activation=relu ===
+C:\Users\micha\AppData\Roaming\Python\Python312\site-packages\keras\src\layers\core\dense.py:95: UserWarning: Do not pass an `input_shape`/`input_dim` argument to a layer. When using Sequential models, prefer using an `Input(shape)` object as the first layer in the model instead.
+  super().__init__(activity_regularizer=activity_regularizer, **kwargs)
+2025-11-18 14:33:32.692356: I tensorflow/core/platform/cpu_feature_guard.cc:210] This TensorFlow binary is optimized to use available CPU instructions in performance-critical operations.
+To enable the following instructions: SSE3 SSE4.1 SSE4.2 AVX AVX2 FMA, in other operations, rebuild TensorFlow with the appropriate compiler flags.
+Trening zakończony w 34.64s
+🎯 Accuracy: 99.67% | Czas treningu: 34.64s | Czas predykcji: 1.32s
+📊 Confusion matrix (%):
+      spam      ham
+spam  65.78%    0.09%
+ham   0.24%     33.88%
+WARNING:tensorflow:From C:\Users\micha\AppData\Roaming\Python\Python312\site-packages\keras\src\backend\common\global_state.py:82: The name tf.reset_default_graph is deprecated. Please use tf.compat.v1.reset_default_graph instead.
+
+
+=== Model: medium | layers=[128, 64] | activation=relu ===
+C:\Users\micha\AppData\Roaming\Python\Python312\site-packages\keras\src\layers\core\dense.py:95: UserWarning: Do not pass an `input_shape`/`input_dim` argument to a layer. When using Sequential models, prefer using an `Input(shape)` object as the first layer in the model instead.
+  super().__init__(activity_regularizer=activity_regularizer, **kwargs)
+Trening zakończony w 56.67s
+🎯 Accuracy: 99.64% | Czas treningu: 56.67s | Czas predykcji: 1.03s
+📊 Confusion matrix (%):
+      spam      ham
+spam  65.78%    0.09%
+ham   0.27%     33.85%
+
+=== Model: large | layers=[256, 128, 64] | activation=relu ===
+C:\Users\micha\AppData\Roaming\Python\Python312\site-packages\keras\src\layers\core\dense.py:95: UserWarning: Do not pass an `input_shape`/`input_dim` argument to a layer. When using Sequential models, prefer using an `Input(shape)` object as the first layer in the model instead.
+  super().__init__(activity_regularizer=activity_regularizer, **kwargs)
+Trening zakończony w 99.26s
+🎯 Accuracy: 99.61% | Czas treningu: 99.26s | Czas predykcji: 1.17s
+📊 Confusion matrix (%):
+      spam      ham
+spam  65.76%    0.12%
+ham   0.27%     33.85%
+
+=== Model: small_tanh | layers=[64] | activation=tanh ===
+C:\Users\micha\AppData\Roaming\Python\Python312\site-packages\keras\src\layers\core\dense.py:95: UserWarning: Do not pass an `input_shape`/`input_dim` argument to a layer. When using Sequential models, prefer using an `Input(shape)` object as the first layer in the model instead.
+  super().__init__(activity_regularizer=activity_regularizer, **kwargs)
+Trening zakończony w 31.32s
+🎯 Accuracy: 99.64% | Czas treningu: 31.32s | Czas predykcji: 0.83s
+📊 Confusion matrix (%):
+      spam      ham
+spam  65.77%    0.11%
+ham   0.25%     33.87%
+
+📁 Wyniki zapisano do: results_dnn.txt

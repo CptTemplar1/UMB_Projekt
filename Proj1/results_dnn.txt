@@ -1,0 +1,55 @@
+DNN TF-IDF results
+SAMPLE_SIZE=None
+MAX_FEATURES=20000
+EPOCHS=5
+BATCH_SIZE=128
+USE_PREPROCESSING=True
+
+
+Model: small
+
+layers=[64] activation=relu
+
+accuracy=99.67% train_time=34.64s predict_time=1.32s
+
+confusion_percent:
+spam_spam= 65.78% spam_ham=  0.09%
+
+ham_spam=  0.24% ham_ham= 33.88%
+
+
+Model: medium
+
+layers=[128, 64] activation=relu
+
+accuracy=99.64% train_time=56.67s predict_time=1.03s
+
+confusion_percent:
+spam_spam= 65.78% spam_ham=  0.09%
+
+ham_spam=  0.27% ham_ham= 33.85%
+
+
+Model: large
+
+layers=[256, 128, 64] activation=relu
+
+accuracy=99.61% train_time=99.26s predict_time=1.17s
+
+confusion_percent:
+spam_spam= 65.76% spam_ham=  0.12%
+
+ham_spam=  0.27% ham_ham= 33.85%
+
+
+Model: small_tanh
+
+layers=[64] activation=tanh
+
+accuracy=99.64% train_time=31.32s predict_time=0.83s
+
+confusion_percent:
+spam_spam= 65.77% spam_ham=  0.11%
+
+ham_spam=  0.25% ham_ham= 33.87%
+

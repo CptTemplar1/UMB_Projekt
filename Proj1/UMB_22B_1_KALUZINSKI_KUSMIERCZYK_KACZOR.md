@@ -559,6 +559,75 @@ ham   0.09%     33.19%
 📁 Wyniki zapisano do pliku: results_stemming.txt
 ```
 
+#### Wnioski
+
+W zadaniach 2 i 3 zastosowano metodę blacklisty słów kluczowych do klasyfikacji wiadomości email na spam i ham. Poniżej przedstawiono szczegóły dotyczące tej metody oraz analizę uzyskanych wyników.
+
+**Opis metody**  
+Metoda blacklisty słów kluczowych polega na identyfikacji najbardziej charakterystycznych słów dla kategorii spamu i wykorzystaniu ich do klasyfikacji nowych wiadomości. Algorytm działa w dwóch etapach:
+1. **Faza treningowa**: Analiza danych treningowych w celu zidentyfikowania słów o najwyższym stosunku występowania w wiadomościach spam do ham, tworząc listę zakazanych słów kluczowych (blacklistę).
+2. **Faza klasyfikacji**: Oznaczenie wiadomości jako spam, jeśli ta zawiera którekolwiek ze słów z blacklisty; w przeciwnym razie oznaczenie jako ham.
+
+**Zalety metody**  
+- **Prostota implementacji** - niewielka złożoność obliczeniowa
+- **Łatwość interpretacji** - możliwość analizy które słowa decydują o klasyfikacji
+- **Szybkość klasyfikacji** - w fazie predykcji wymaga tylko sprawdzenia obecności słów
+- **Niskie wymagania pamięciowe** - przechowuje tylko listę słów kluczowych
+
+**Wady metody**  
+- **Niska dokładność** - prosty model może nie uchwycić złożonych wzorców w danych
+- **Podatność na zmiany** - nowe formy spamu mogą ominąć istniejącą blacklistę
+- **Brak kontekstu** - nie uwzględnia relacji między słowami ani ich kolejności
+- **Problemy z fałszywymi pozytywami** - słowa mogą mieć różne znaczenia w różnych kontekstach
+
+---
+
+Program realizował dwa testy: z zastosowaniem stemizacji oraz bez niej.  
+**Stemizacja** to proces redukcji słów do ich formy podstawowej, poprzez usunięcie prefiksów i sufiksów. Na przykład:
+- "running", "runs", "ran" → "run"
+- "connection", "connected", "connecting" → "connect"
+
+Celem stosowania stemizacji jest zredukowanie wymiarowości danych tekstowych poprzez grupowanie różnych form tego samego słowa, co powinno poprawić skuteczność klasyfikacji poprzez lepsze uogólnienie wzorców.
+
+---
+
+**Konfiguracja programu**  
+Na wstępie określono parametry eksperymentu, takie jak ścieżki do danych, stosunek podziału na zbiór treningowy i testowy oraz liczba słów w blacklist. Najważniejsze parametry to:
+- **`TRAIN_RATIO = 0.8`** - Standardowy podział 80/20, który jest powszechnie stosowany w uczeniu maszynowym, zapewniając wystarczającą ilość danych do treningu (60,335 wiadomości) przy zachowaniu reprezentatywnego zbioru testowego (15,084 wiadomości).
+- **`TOP_N = 100`** - Limit 100 słów w blackliście stanowi kompromis między skutecznością a specyficznością. Zbyt mała lista mogłaby pomijać istotne wzorce, a zbyt duża zwiększałaby ryzyko nadmiernego dopasowania.
+- **`SAMPLE_SIZE = None`** - Użycie całego zbioru danych zapewnia wiarygodność wyników, jednak parametr umożliwia szybkie testy na mniejszych próbkach podczas rozwoju algorytmu.
+
+---
+
+**Analiza wyników**  
+Poniższa tabela przedstawia porównanie kluczowych metryk uzyskanych w obu testach:
+
+| Metryka | Ze stemizacją | Bez stemizacji | Różnica | Wnioski |
+|---------|---------------|----------------|---------|---------|
+| **Accuracy** | 61.83% | 58.64% | **+3.20%** | Stemizacja poprawia ogólną dokładność klasyfikacji |
+| **Czas wykonania** | 2465.29s (≈41 min) | 239.89s (≈4 min) | **+2225.39s** | Stemizacja znacząco wydłuża czas przetwarzania |
+| **Poprawny spam** | 28.65% | 25.45% | **+3.20%** | Lepsze wykrywanie wiadomości spam |
+| **Fałszywe negatywy** | 38.07% | 41.28% | **-3.21%** | Mniej spamu przechodzi niezauważone |
+| **Fałszywe pozytywy** | 0.09% | 0.09% | **0.00%** | Brak wpływu na błędne oznaczanie ham |
+| **Poprawny ham** | 33.18% | 33.19% | **-0.01%** | Klasyfikacja ham pozostaje niezmienna |
+
+**Efektywność stemizacji**  
+Stemizacja przynosi wymierne korzyści w skuteczności klasyfikacji, zwiększając accuracy o 3.20%. Poprawa koncentruje się głównie na lepszym wykrywaniu spamu, gdzie obserwujemy wzrost poprawnie sklasyfikowanych wiadomości spam o 3.20% i redukcję fałszywych negatywów o 3.21%.
+
+**Koszt wydajnościowy**  
+Czas przetwarzania ze stemizacją jest około 10x dłuższy (2465s vs 240s), co stanowi istotny kompromis w zastosowaniach wymagających szybkiego przetwarzania dużych zbiorów danych.
+
+**Wpływ na różne kategorie wiadomości**  
+- **Spam**: Stemizacja znacząco poprawia wykrywalność (+3.20%)
+- **Ham**: Brak zauważalnego wpływu na klasyfikację
+- **Fałszywe pozytywy**: Minimalne i identyczne w obu wersjach (0.09%)
+
+---
+
+Pomimo poprawy dzięki stemizacji, ogólna dokładność na poziomie ~60% potwierdza, że prosta **blacklista** słów kluczowych ma fundamentalne ograniczenia i powinna być traktowana jako element szerszego systemu filtrowania spamu, a nie samodzielne rozwiązanie.  
+Wersja ze stemizacją jest preferowana ze względu na lepsze wykrywanie spamu, jednak kosztem znacznie dłuższego czasu przetwarzania. Wybór między wersjami powinien uwzględniać specyficzne wymagania dotyczące dokładności i wydajności w danym zastosowaniu.  
+Obie wersje mogą skutecznie służyć jako pierwsza linia obrony, jednak wysoki odsetek fałszywych negatywów (~38-41%) wskazuje na potrzebę dodatkowych metod weryfikacji.
+
 ### Zadanie 4
 Dokonać klasyfikacji binarnej wiadomości z archiwum (zadanie 1) na spam i ham, stosując algorytmy rozmytego haszowania.
 
@@ -1185,6 +1254,76 @@ ham   0.04%     34.08%
 📁 Wyniki zapisano do: results_lsh.txt
 ```
 
+#### Wnioski
+
+W zadaniu 4 zastosowano algorytm Locality Sensitive Hashing (LSH) z MinHash do klasyfikacji binarnej wiadomości email na spam i ham. Przetestowano różne wartości progu (threshold) dla LSH, co miało wpływ na dokładność klasyfikacji.
+
+**Opis algorytmu**  
+Algorytm LSH (Locality-Sensitive Hashing) z wykorzystaniem MinHash to zaawansowana technika oparta na teorii prawdopodobieństwa, służąca do znajdowania podobnych dokumentów w dużych zbiorach danych. Algorytm działa w następujących etapach:
+1. **Tworzenie shingli**: Podział tekstu na ciągłe sekwencje słów (k-gramy)
+2. **MinHash**: Generowanie sygnatur dokumentów poprzez wielokrotne haszowanie shingli i wybieranie minimalnych wartości hash
+3. **LSH**: Grupowanie podobnych dokumentów w "koszykach" na podstawie podobieństwa ich sygnatur
+4. **Klasyfikacja**: Głosowanie większościowe etykiet spośród najbliższych sąsiadów w zbiorze treningowym
+
+**Zalety metody**
+- **Skalowalność** - efektywne przetwarzanie dużych zbiorów danych 
+- **Odporność na permutacje** - niezależność od kolejności słów w dokumencie
+- **Wykrywanie podobieństw** - zdolność do identyfikacji dokumentów o podobnej treści 
+- **Probabilistyczna dokładność** - kontrola precyzji poprzez parametr threshold
+
+**Wady metody**
+- **Złożoność konfiguracji** - wymaga dostrojenia wielu parametrów (num_perm, shingle_size, threshold) w celu uzyskania optymalnych wyników
+- **Koszt pamięciowy** - przechowywanie sygnatur MinHash dla wszystkich dokumentów 
+- **Zależność od jakości danych** - wrażliwość na preprocessing i dobór shingli
+
+---
+
+**Konfiguracja programu**  
+Podobnie jak poprzednio, na wstępie należało zdefiniować stałe konfiguracyjne, takie jak ścieżki do danych, parametry LSH/MinHash oraz ustawienia dotyczące przetwarzania tekstu (stemizacja, rozmiar shingli itp.). Działanie algorytmu zostało przetestowane dla różnych wartości progu (threshold) LSH: 0.1, 0.3, 0.5, 0.7, 0.9. Najważniejsze parametry to:
+- **`TRAIN_RATIO = 0.8`** - Standardowy podział 80/20 zapewnia odpowiednią ilość danych treningowych (60,335 wiadomości) przy zachowaniu reprezentatywnego zbioru testowego (15,084 wiadomości).
+- **`NUM_PERM = 128`** - Liczba permutacji stanowi kompromis między dokładnością a wydajnością. Większa liczba zwiększa precyzję, ale kosztem czasu przetwarzania.
+- **`SHINGLE_SIZE = 3`** - Rozmiar shingli (3-gramów) pozwala na uchwycenie kontekstu słów, co jest kluczowe dla identyfikacji podobieństw między dokumentami.
+- **`USE_STEMMING = True`** - Włączenie stemizacji, co wynika z pozytywnych doświadczeń z Zadania 3, gdzie stemizacja poprawiła skuteczność klasyfikacji.
+- **`THRESHOLDS = [0.1, 0.3, 0.5, 0.7, 0.9]`** - Zakres progów testowych od bardzo  niskiego (0.1) do wysokiego (0.9), pozwala na kompleksową analizę kompromisu między czułością a specyficznością.
+
+---
+
+**Tabela wyników programu dla różnych wartości threshold**
+| Threshold | Accuracy | Czas budowy LSH | Czas klasyfikacji | Poprawny spam | Fałszywe negatywy | Fałszywe pozytywy | Poprawny ham |
+|-----------|----------|-----------------|-------------------|---------------|-------------------|-------------------|-------------|
+| **0.1** | **94.50%** | 9.47s | 129.05s | **60.55%** | **5.32%** | 0.18% | 33.94% |
+| **0.3** | 88.80% | 6.92s | 120.82s | 54.76% | 11.12% | **0.09%** | 34.04% |
+| **0.5** | 79.14% | 4.78s | 118.51s | 45.09% | 20.79% | 0.07% | 34.06% |
+| **0.7** | 70.72% | 3.11s | 116.56s | 36.65% | 29.23% | 0.05% | 34.07% |
+| **0.9** | 62.70% | **1.53s** | **115.94s** | 28.61% | 37.26% | **0.04%** | **34.08%** |
+
+**Optymalizacja parametru threshold**
+Analiza wyników pokazuje, że **Threshold = 0.1** osiąga najlepszą dokładność (94.50%), co wskazuje na optymalny kompromis między czułością a specyficznością. Niższe wartości threshold zwiększają liczbę dopasowań, poprawiając wykrywanie spamu kosztem niewielkiego wzrostu fałszywych pozytywów.
+
+**Wydajność czasowa**
+- **Czas przygotowania MinHash**: 452.07s - jednorazowy koszt inicjalizacji
+- **Czas budowy LSH**: Maleje liniowo z wzrostem threshold (9.47s → 1.53s)
+- **Czas klasyfikacji**: Stabilny na poziomie ~115-129s, niezależnie od threshold
+
+---
+
+**Porównanie z metodą blacklisty (Zadania 2-3)**
+| Metryka | LSH (threshold=0.1) | Blacklista (ze stemizacją) | Poprawa |
+|---------|---------------------|----------------------------|---------|
+| **Accuracy** | **94.50%** | 61.83% | **+32.67%** |
+| **Poprawny spam** | **60.55%** | 28.65% | **+31.90%** |
+| **Fałszywe negatywy** | **5.32%** | 38.07% | **-32.75%** |
+| **Fałszywe pozytywne** | 0.18% | **0.09%** | +0.09% |
+| **Czas przetwarzania** | ~591s | 2465s | **-1874s** |
+
+Ocena efektywności algorytmu LSH w porównaniu z metodą blacklisty wykazała jego znaczną przewagę, wyrażającą się wzrostem dokładności o 32,67% przy jednoczesnym skróceniu czasu przetwarzania.
+
+Kluczowym czynnikiem wpływającym na skuteczność metody jest odpowiedni dobór parametru threshold, od którego zależy kompromis między czułością a specyficznością klasyfikatora. Ponadto algorytm LSH wyróżnia się doskonałą skalowalnością, zapewniając przewidywalne czasy przetwarzania nawet przy pracy na dużych zbiorach danych. Warto podkreślić, że we wszystkich testowanych konfiguracjach utrzymał on bardzo niski poziom fałszywych trafień, gdzie błędne oznaczanie prawidłowych wiadomości jako spam nie przekroczyło 0,2%.
+
+W kontekście praktycznych zastosowań, dla systemów produkcyjnych rekomendowane jest ustawienie threshold na poziomie 0,1, co gwarantuje wysoką skuteczność wykrywania spamu przy zachowaniu akceptowalnego odsetka fałszywych alarmów.
+
+Metoda LSH z wykorzystaniem MinHash okazała się zdecydowanie bardziej efektywna niż prosta blacklista słów kluczowych, stanowiąc profesjonalne i gotowe do wdrożenia rozwiązanie do klasyfikacji wiadomości email na skalę przemysłową.
+
 ### Zadanie 5
 Dokonać klasyfikacji binarnej wiadomości z archiwum (zadanie 1) na spam i ham, stosując algorytm Naive Bayes.
 
@@ -1639,3 +1778,638 @@ ham   0.25%     33.87%
 📁 Wyniki zapisano do: results_naive_bayes.txt
 ```
 
+#### Wnioski
+
+# Dodać diagramy kodu z Mermaid Chart (jest podobno jako dodatek do Visual Studio Code) Diagramy mają być jako skrypty, a nie jako obrazki
+# Zadanie 6 też jest do zrobienia, ale nie przeginać ze złożonością modelu, tak żeby uzyskać wyniki zbliżone/lepsze niż bayes przy nie za dużym nakładzie pracy.
+
+
+### Zadanie 6
+Dokonać klasyfikacji binarnej wiadomości z archiwum (zadanie 1) na spam i ham, stosując model gęsto łączonej głębokiej sieci neuronowej i technikę uczenia nadzorowanego.
+**Uwagi:**
+1. Zaproponować sposób translacji danych wejściowych do postaci akceptowanego przez sieć tensora wejściowego.
+2. Zaproponować liczbę warstw ukrytych oraz liczbę węzłów w poszczególnych warstwach.
+3. Zaproponować funkcje aktywacji dla węzłów w warstwach ukrytych oraz w warstwie wyjściowej.
+4. Zaproponować metrykę dokładności.
+5. Zaproponować optymalizator.
+6. Do realizacji zadania zastosować narzędzia z biblioteki TensorFLow.
+7. W wyniku realizacji zadania wygenerować macierz konfuzji oraz wartość wskaźnika accuracy.
+8. Porównać uzyskane wyniki dla różnych modeli (to znaczy: ilości warstw ukrytych, ilości węzłów w warstwach, funkcji aktywacji).
+9. Porównać uzyskane wyniki z wynikami uzyskanym w ramach realizacji poprzednich zadań.
+
+#### Implementacja
+
+**1. Konfiguracja globalna**
+Na wstępie programu znajduje się kod, który definiuje stałe konfiguracyjne używane w całym programie. Ułatwia to dostosowanie parametrów bez konieczności modyfikowania logiki programu.
+
+**Kod:**  
+``` python
+INDEX_PATH = "trec07p/full/index"   # ścieżka do indexu
+DATA_PATH = "trec07p"               # ścieżka do danych
+TRAIN_RATIO = 0.8                   # stosunek danych treningowych do testowych
+SAMPLE_SIZE = None                  # ograniczenie liczby próbek, np. 2000 dla testów, None = całość
+MAX_FEATURES = 20000                # rozmiar wektora TF-IDF (zmniejsz do 5000 jeśli brakuje pamięci)
+SAMPLE_SEED = 42                    # ustawienie ziarna losowości
+
+EPOCHS = 5                          # liczba epok treningu 
+BATCH_SIZE = 128                    # rozmiar batcha
+RESULTS_FILE = "results_dnn.txt"    # nazwa pliku wynikowego
+
+USE_PREPROCESSING = True            # Czy użyć preprocessingu NLTK (stopwords + stemming) przed TF-IDF
+
+# Modele do przetestowania: lista dictów (nazwa, architektura, activation_hidden)
+MODEL_CONFIGS = [
+    {"name": "small", "layers": [64], "activation": "relu"},
+    {"name": "medium", "layers": [128, 64], "activation": "relu"},
+    {"name": "large", "layers": [256, 128, 64], "activation": "relu"},
+    {"name": "small_tanh", "layers": [64], "activation": "tanh"},
+]
+
+# Ustawienie ziarna losowości dla powtarzalności
+random.seed(SAMPLE_SEED)
+np.random.seed(SAMPLE_SEED)
+tf.random.set_seed(SAMPLE_SEED)
+```
+
+---
+
+**2. Funkcja `load_index`**
+
+**Wejście:**  
+- `index_path` (string) - ścieżka do pliku z indeksem wiadomości
+
+**Wyjście:**  
+- `entries` (list) - lista krotek zawierających pełną ścieżkę do pliku i etykietę (spam/ham)
+
+**Opis:**  
+Funkcja wczytuje plik indeksu TREC07P, parsuje każdą linię rozdzielając ją na etykietę (spam/ham) i ścieżkę do pliku. Tworzy pełne ścieżki do plików przez połączenie ścieżki bazowej DATA_PATH ze ścieżką z indeksu (po usunięciu "../"). Zwraca listę wszystkich wpisów gotowych do przetwarzania.
+
+**Kod:**  
+``` python
+def load_index(index_path):
+    entries = []
+    with open(index_path, "r") as f:
+        for line in f:
+            parts = line.strip().split()
+            if len(parts) >= 2:
+                label, path = parts[0], parts[1]
+                full_path = os.path.join(DATA_PATH, path.replace("../", ""))
+                entries.append((full_path, label))
+    return entries
+```
+
+---
+
+**3. Funkcja `load_email_content`**
+
+**Wejście:**  
+- `filepath` (string) - ścieżka do pliku z wiadomością email
+
+**Wyjście:**  
+- `text` (string) - połączony temat i treść wiadomości lub pusty string w przypadku błędu
+
+**Opis:**  
+Funkcja wczytuje i parsuje wiadomość email, wyciągając zarówno temat (Subject) jak i treść wiadomości. Obsługuje wiadomości wieloczęściowe (multipart) - iteruje przez wszystkie części i wyciąga tylko te o typie tekstowym. Łączy temat z treścią w jeden string. Dekoduje zawartość binarną i obsługuje błędy kodowania przy użyciu kodowania latin-1.
+
+**Kod:**  
+``` python
+def load_email_content(filepath):
+    try:
+        with open(filepath, "r", encoding="latin-1") as f:
+            msg = message_from_file(f)
+            subject = msg.get("Subject", "") or ""
+            payload = ""
+            if msg.is_multipart():
+                parts = []
+                for part in msg.walk():
+                    ctype = part.get_content_type()
+                    if ctype.startswith("text/"):
+                        p = part.get_payload(decode=True)
+                        if p:
+                            parts.append(p)
+                payload = " ".join(str(p) for p in parts)
+            else:
+                p = msg.get_payload(decode=True)
+                payload = p if p else ""
+            if isinstance(payload, bytes):
+                payload = payload.decode(errors="ignore")
+            return (subject + " " + payload).strip()
+    except Exception:
+        return ""
+```
+
+---
+
+**4. Funkcja `preprocess_text`**
+
+**Wejście:**  
+- `text` (string) - tekst wiadomości email do przetworzenia
+
+**Wyjście:**  
+- `text` (string) - przetworzony tekst po stemizacji i usunięciu stopwords
+
+**Opis:**  
+Funkcja przeprowadza pełne przetwarzanie tekstu NLTK: konwersja na małe litery, usuwanie znaków interpunkcyjnych, tokenizacja na pojedyncze słowa, filtrowanie tylko słów alfabetycznych, usuwanie stopwords (słów bez znaczenia) oraz stemizacja przy użyciu algorytmu PorterStemmer. Na końcu łączy tokeny z powrotem w string dla kompatybilności z TF-IDF Vectorizer.
+
+**Kod:**  
+``` python
+def preprocess_text(text):
+    text = text.lower()
+    text = text.translate(str.maketrans("", "", string.punctuation))
+    tokens = word_tokenize(text)
+    sw = set(stopwords.words("english"))
+    tokens = [t for t in tokens if t.isalpha() and t not in sw]
+    stemmer = PorterStemmer()
+    tokens = [stemmer.stem(t) for t in tokens]
+    return " ".join(tokens)
+```
+
+---
+
+**5. Funkcja `prepare_corpus`**
+
+**Wejście:**  
+- `entries` (list) - lista krotek (ścieżka, etykieta) do przetworzenia
+- `use_preprocessing` (bool) - flaga określająca czy stosować przetwarzanie NLTK
+- `sample_size` (int) - ograniczenie liczby przetwarzanych dokumentów
+
+**Wyjście:**  
+- `texts` (list) - lista tekstów wiadomości (przetworzonych lub nie)
+- `labels` (numpy.ndarray) - tablica etykiet numerycznych (spam=1, ham=0)
+
+**Opis:**  
+Funkcja przetwarza wszystkie dokumenty z podanej listy. Dla każdego dokumentu wczytuje treść emaila i opcjonalnie stosuje preprocessing NLTK. Konwertuje etykiety tekstowe na numeryczne (spam=1, ham=0) dla kompatybilności z TensorFlow. Zwraca listę tekstów i tablicę etykiet numerycznych.
+
+**Kod:**  
+``` python
+def prepare_corpus(entries, use_preprocessing=True, sample_size=None):
+    texts = []
+    labels = []
+    count = 0
+    for path, label in entries:
+        if sample_size and count >= sample_size:
+            break
+        txt = load_email_content(path)
+        if use_preprocessing:
+            txt = preprocess_text(txt)
+        texts.append(txt)
+        labels.append(1 if label == "spam" else 0)  # spam=1, ham=0
+        count += 1
+    return texts, np.array(labels)
+```
+
+---
+
+**6. Funkcja `build_vectorizer`**
+
+**Wejście:**  
+- `texts` (list) - lista tekstów do wektoryzacji
+- `max_features` (int) - maksymalna liczba cech w wektorze TF-IDF
+
+**Wyjście:**  
+- `vec` (TfidfVectorizer) - wytrenowany obiekt vectorizera
+- `X` (scipy.sparse matrix) - macierz cech w formacie TF-IDF
+
+**Opis:**  
+Funkcja tworzy i trenuje vectorizer TF-IDF na podanych tekstach. Używa zakresu n-gramów (1,2), co oznacza, że uwzględnia zarówno pojedyncze słowa jak i pary kolejnych słów. Ogranicza liczbę cech do `max_features` w celu kontroli wymiarowości danych. Zwraca wytrenowany vectorizer i przekształconą macierz cech.
+
+**Kod:**  
+``` python
+def build_vectorizer(texts, max_features=20000):
+    vec = TfidfVectorizer(max_features=max_features, ngram_range=(1,2))
+    X = vec.fit_transform(texts)
+    return vec, X
+```
+
+---
+
+**7. Funkcja `build_model`**
+
+**Wejście:**  
+- `input_dim` (int) - wymiarowość danych wejściowych
+- `layer_sizes` (list) - lista określająca liczbę neuronów w kolejnych warstwach
+- `activation_hidden` (string) - funkcja aktywacji dla warstw ukrytych
+- `dropout` (float) - współczynnik dropout dla regularyzacji
+- `lr` (float) - learning rate dla optymalizatora
+
+**Wyjście:**  
+- `model` (Sequential) - skompilowany model sieci neuronowej
+
+**Opis:**  
+Funkcja buduje sekwencyjny model DNN zgodnie z podaną architekturą. Tworzy warstwy gęste z określoną liczbą neuronów i funkcjami aktywacji. Po każdej warstwie dodaje warstwę Dropout dla zapobiegania przeuczeniu. Ostatnia warstwa używa funkcji sigmoid dla klasyfikacji binarnej. Kompiluje model z optymalizatorem Adam, funkcją straty binary_crossentropy i metryką accuracy.
+
+**Kod:**  
+``` python
+def build_model(input_dim, layer_sizes, activation_hidden="relu", dropout=0.2, lr=1e-3):
+    model = Sequential()
+    # Warstwa wejściowa jest częścią pierwszej warstwy ukrytej
+    for i, size in enumerate(layer_sizes):
+        if i == 0:
+            model.add(Dense(size, activation=activation_hidden, input_shape=(input_dim,)))
+        else:
+            model.add(Dense(size, activation=activation_hidden))
+        model.add(Dropout(dropout))
+    # Warstwa wyjściowa - sigmoid dla binarnej klasyfikacji
+    model.add(Dense(1, activation="sigmoid"))
+    model.compile(optimizer=Adam(learning_rate=lr),
+                  loss="binary_crossentropy",
+                  metrics=["accuracy"])
+    return model
+```
+
+---
+
+**8. Funkcja `main`**
+
+**Wejście:**  
+- Brak parametrów wejściowych
+
+**Wyjście:**  
+- Brak bezpośredniego wyjścia (funkcja wykonuje program i zapisuje wyniki do pliku)
+
+**Opis:**  
+Główna funkcja programu koordynująca cały proces: wczytuje i tasuje dane, przygotowuje korpus tekstowy, tworzy wektory TF-IDF, testuje różne konfiguracje modeli DNN, trenuje modele, dokonuje predykcji, oblicza metryki wydajności i zapisuje szczegółowe wyniki do pliku. Dla każdej konfiguracji modelu z listy MODEL_CONFIGS przeprowadza pełny cykl treningu i ewaluacji.
+
+**Kod:**  
+``` python
+def main():
+    print("📂 Wczytywanie danych...")
+    entries = load_index(INDEX_PATH)
+    random.shuffle(entries)
+
+    if SAMPLE_SIZE:
+        use_entries = entries[:SAMPLE_SIZE]
+        print(f"⚠️ SAMPLE_SIZE aktywne. Wykorzystuję {len(use_entries)} pierwszych wpisów.")
+    else:
+        use_entries = entries
+
+    # Przygotowanie tekstów i etykiet
+    print("🧾 Przygotowanie korpusu tekstów (preprocessing = %s)..." % USE_PREPROCESSING)
+    texts, labels = prepare_corpus(use_entries, use_preprocessing=USE_PREPROCESSING, sample_size=None)
+    print(f"Przygotowano {len(texts)} dokumentów.")
+
+    # Podział na trening/test (z zachowaniem TRAIN_RATIO)
+    split_point = int(len(texts) * TRAIN_RATIO)
+    X_texts_train = texts[:split_point]
+    X_texts_test = texts[split_point:]
+    y_train = labels[:split_point]
+    y_test = labels[split_point:]
+    print(f"Trening: {len(X_texts_train)}, Test: {len(X_texts_test)}")
+
+    # Tworzenie wektorów TF-IDF
+    print(f"🔤 Tworzenie TF-IDF (max_features={MAX_FEATURES})...")
+    vectorizer, X_train_sparse = build_vectorizer(X_texts_train, max_features=MAX_FEATURES)
+    X_test_sparse = vectorizer.transform(X_texts_test)
+
+    # Konwersja do dense (Keras wymaga gęstych (Dense) macierzy)
+    print("Konwersja do macierzy gęstych...")
+    X_train = X_train_sparse.toarray().astype(np.float32)
+    X_test = X_test_sparse.toarray().astype(np.float32)
+    input_dim = X_train.shape[1]
+    print(f"Input dim = {input_dim}")
+
+    results_lines = []
+    results_lines.append(f"DNN TF-IDF results\nSAMPLE_SIZE={SAMPLE_SIZE}\nMAX_FEATURES={MAX_FEATURES}\nEPOCHS={EPOCHS}\nBATCH_SIZE={BATCH_SIZE}\nUSE_PREPROCESSING={USE_PREPROCESSING}\n\n")
+
+    # Dla każdej konfiguracji modelu trenuje, testuje i zapisuje wyniki
+    for cfg in MODEL_CONFIGS:
+        name = cfg["name"]
+        layers = cfg["layers"]
+        activation = cfg.get("activation", "relu")
+        print(f"\n=== Model: {name} | layers={layers} | activation={activation} ===")
+        model = build_model(input_dim=input_dim, layer_sizes=layers, activation_hidden=activation)
+
+        # Trening modelu
+        t0 = time.time()
+        history = model.fit(X_train, y_train, epochs=EPOCHS, batch_size=BATCH_SIZE, verbose=0)
+        train_time = time.time() - t0
+        print(f"Trening zakończony w {train_time:.2f}s")
+
+        # Predykcja na zbiorze testowym
+        t1 = time.time()
+        y_prob = model.predict(X_test, batch_size=BATCH_SIZE, verbose=0).ravel()
+        y_pred = (y_prob >= 0.5).astype(int)
+        predict_time = time.time() - t1
+
+        # Metryki ewaluacyjne
+        acc = accuracy_score(y_test, y_pred) * 100.0
+        labels_order = [1, 0]  # spam=1, ham=0
+        cm = confusion_matrix(y_test, y_pred, labels=labels_order)
+        cm_percent = cm / np.sum(cm) * 100.0
+
+        # Wypisuje wyniki i zapisuje je do pliku
+        print(f"🎯 Accuracy: {acc:.2f}% | Czas treningu: {train_time:.2f}s | Czas predykcji: {predict_time:.2f}s")
+        print("📊 Confusion matrix (%):")
+        print("      spam      ham")
+        print(f"spam  {cm_percent[0,0]:6.2f}%   {cm_percent[0,1]:6.2f}%")
+        print(f"ham   {cm_percent[1,0]:6.2f}%   {cm_percent[1,1]:6.2f}%")
+
+        results_lines.append(f"Model: {name}\n")
+        results_lines.append(f"layers={layers} activation={activation}\n")
+        results_lines.append(f"accuracy={acc:.2f}% train_time={train_time:.2f}s predict_time={predict_time:.2f}s\n")
+        results_lines.append(f"confusion_percent:\nspam_spam={cm_percent[0,0]:6.2f}% spam_ham={cm_percent[0,1]:6.2f}%\n")
+        results_lines.append(f"ham_spam={cm_percent[1,0]:6.2f}% ham_ham={cm_percent[1,1]:6.2f}%\n\n")
+
+        # Zwolnij pamięć modelu przed kolejnym testem
+        tf.keras.backend.clear_session()
+
+    # Zapis do pliku wyników
+    with open(RESULTS_FILE, "w", encoding="utf-8") as f:
+        f.write("\n".join(results_lines))
+    
+    print(f"\n📁 Wyniki zapisano do: {RESULTS_FILE}")
+```
+
+---
+
+**9. Kompletny kod**  
+Poniżej znajduje się kompletny kod programu, który można uruchomić.
+
+**Kod:**  
+``` python
+import os
+import string
+import random
+import time
+from email import message_from_file
+
+import numpy as np
+import tensorflow as tf
+from tensorflow.keras import Sequential
+from tensorflow.keras.layers import Dense, Dropout
+from tensorflow.keras.optimizers import Adam
+
+from sklearn.feature_extraction.text import TfidfVectorizer
+from sklearn.metrics import confusion_matrix, accuracy_score
+from sklearn.model_selection import train_test_split
+
+import nltk
+from nltk.corpus import stopwords
+from nltk.stem import PorterStemmer
+from nltk.tokenize import word_tokenize
+
+# === KONFIGURACJA ===
+INDEX_PATH = "trec07p/full/index"   # ścieżka do indexu
+DATA_PATH = "trec07p"               # ścieżka do danych
+TRAIN_RATIO = 0.8                   # stosunek danych treningowych do testowych
+SAMPLE_SIZE = None                  # ograniczenie liczby próbek, np. 2000 dla testów, None = całość
+MAX_FEATURES = 20000                # rozmiar wektora TF-IDF (zmniejsz do 5000 jeśli brakuje pamięci)
+SAMPLE_SEED = 42                    # ustawienie ziarna losowości
+
+EPOCHS = 5                          # liczba epok treningu 
+BATCH_SIZE = 128                    # rozmiar batcha
+RESULTS_FILE = "results_dnn.txt"    # nazwa pliku wynikowego
+
+USE_PREPROCESSING = True            # Czy użyć preprocessingu NLTK (stopwords + stemming) przed TF-IDF
+
+# Modele do przetestowania: lista dictów (nazwa, architektura, activation_hidden)
+MODEL_CONFIGS = [
+    {"name": "small", "layers": [64], "activation": "relu"},
+    {"name": "medium", "layers": [128, 64], "activation": "relu"},
+    {"name": "large", "layers": [256, 128, 64], "activation": "relu"},
+    {"name": "small_tanh", "layers": [64], "activation": "tanh"},
+]
+
+# Ustawienie ziarna losowości dla powtarzalności
+random.seed(SAMPLE_SEED)
+np.random.seed(SAMPLE_SEED)
+tf.random.set_seed(SAMPLE_SEED)
+
+
+# === POMOCNICZE FUNKCJE ===
+# Wczytuje indeks plików e-maili i ich etykiety (spam/ham)
+def load_index(index_path):
+    entries = []
+    with open(index_path, "r") as f:
+        for line in f:
+            parts = line.strip().split()
+            if len(parts) >= 2:
+                label, path = parts[0], parts[1]
+                full_path = os.path.join(DATA_PATH, path.replace("../", ""))
+                entries.append((full_path, label))
+    return entries
+
+# Wczytuje treść e-maila (temat + ciało) jako zwykły tekst. Ignoruje błędy kodowania.
+def load_email_content(filepath):
+    try:
+        with open(filepath, "r", encoding="latin-1") as f:
+            msg = message_from_file(f)
+            subject = msg.get("Subject", "") or ""
+            payload = ""
+            if msg.is_multipart():
+                parts = []
+                for part in msg.walk():
+                    ctype = part.get_content_type()
+                    if ctype.startswith("text/"):
+                        p = part.get_payload(decode=True)
+                        if p:
+                            parts.append(p)
+                payload = " ".join(str(p) for p in parts)
+            else:
+                p = msg.get_payload(decode=True)
+                payload = p if p else ""
+            if isinstance(payload, bytes):
+                payload = payload.decode(errors="ignore")
+            return (subject + " " + payload).strip()
+    except Exception:
+        return ""
+
+
+# Usuwa interpunkcję, stopwords i dokonuje stemizacji
+def preprocess_text(text):
+    text = text.lower()
+    text = text.translate(str.maketrans("", "", string.punctuation))
+    tokens = word_tokenize(text)
+    sw = set(stopwords.words("english"))
+    tokens = [t for t in tokens if t.isalpha() and t not in sw]
+    stemmer = PorterStemmer()
+    tokens = [stemmer.stem(t) for t in tokens]
+    return " ".join(tokens)
+
+
+# Wczytuje teksty i etykiety, przeprowadza opcjonalny preprocessing, zwraca listę tekstów i tablicę etykiet (spam/ham)
+def prepare_corpus(entries, use_preprocessing=True, sample_size=None):
+    texts = []
+    labels = []
+    count = 0
+    for path, label in entries:
+        if sample_size and count >= sample_size:
+            break
+        txt = load_email_content(path)
+        if use_preprocessing:
+            txt = preprocess_text(txt)
+        texts.append(txt)
+        labels.append(1 if label == "spam" else 0)  # spam=1, ham=0
+        count += 1
+    return texts, np.array(labels)
+
+
+# Tworzy i dopasowuje wektorizer TF-IDF, zwraca wektorizer i macierz cech
+def build_vectorizer(texts, max_features=20000):
+    vec = TfidfVectorizer(max_features=max_features, ngram_range=(1,2))
+    X = vec.fit_transform(texts)
+    return vec, X
+
+
+# Buduje model DNN według podanej architektury 
+def build_model(input_dim, layer_sizes, activation_hidden="relu", dropout=0.2, lr=1e-3):
+    model = Sequential()
+    # Warstwa wejściowa jest częścią pierwszej warstwy ukrytej
+    for i, size in enumerate(layer_sizes):
+        if i == 0:
+            model.add(Dense(size, activation=activation_hidden, input_shape=(input_dim,)))
+        else:
+            model.add(Dense(size, activation=activation_hidden))
+        model.add(Dropout(dropout))
+    # Warstwa wyjściowa - sigmoid dla binarnej klasyfikacji
+    model.add(Dense(1, activation="sigmoid"))
+    model.compile(optimizer=Adam(learning_rate=lr),
+                  loss="binary_crossentropy",
+                  metrics=["accuracy"])
+    return model
+
+
+# === GŁÓWNY PROGRAM ===
+def main():
+    print("📂 Wczytywanie danych...")
+    entries = load_index(INDEX_PATH)
+    random.shuffle(entries)
+
+    if SAMPLE_SIZE:
+        use_entries = entries[:SAMPLE_SIZE]
+        print(f"⚠️ SAMPLE_SIZE aktywne. Wykorzystuję {len(use_entries)} pierwszych wpisów.")
+    else:
+        use_entries = entries
+
+    # Przygotowanie tekstów i etykiet
+    print("🧾 Przygotowanie korpusu tekstów (preprocessing = %s)..." % USE_PREPROCESSING)
+    texts, labels = prepare_corpus(use_entries, use_preprocessing=USE_PREPROCESSING, sample_size=None)
+    print(f"Przygotowano {len(texts)} dokumentów.")
+
+    # Podział na trening/test (z zachowaniem TRAIN_RATIO)
+    split_point = int(len(texts) * TRAIN_RATIO)
+    X_texts_train = texts[:split_point]
+    X_texts_test = texts[split_point:]
+    y_train = labels[:split_point]
+    y_test = labels[split_point:]
+    print(f"Trening: {len(X_texts_train)}, Test: {len(X_texts_test)}")
+
+    # Tworzenie wektorów TF-IDF
+    print(f"🔤 Tworzenie TF-IDF (max_features={MAX_FEATURES})...")
+    vectorizer, X_train_sparse = build_vectorizer(X_texts_train, max_features=MAX_FEATURES)
+    X_test_sparse = vectorizer.transform(X_texts_test)
+
+    # Konwersja do dense (Keras wymaga gęstych (Dense) macierzy)
+    print("Konwersja do macierzy gęstych...")
+    X_train = X_train_sparse.toarray().astype(np.float32)
+    X_test = X_test_sparse.toarray().astype(np.float32)
+    input_dim = X_train.shape[1]
+    print(f"Input dim = {input_dim}")
+
+    results_lines = []
+    results_lines.append(f"DNN TF-IDF results\nSAMPLE_SIZE={SAMPLE_SIZE}\nMAX_FEATURES={MAX_FEATURES}\nEPOCHS={EPOCHS}\nBATCH_SIZE={BATCH_SIZE}\nUSE_PREPROCESSING={USE_PREPROCESSING}\n\n")
+
+    # Dla każdej konfiguracji modelu trenuje, testuje i zapisuje wyniki
+    for cfg in MODEL_CONFIGS:
+        name = cfg["name"]
+        layers = cfg["layers"]
+        activation = cfg.get("activation", "relu")
+        print(f"\n=== Model: {name} | layers={layers} | activation={activation} ===")
+        model = build_model(input_dim=input_dim, layer_sizes=layers, activation_hidden=activation)
+
+        # Trening modelu
+        t0 = time.time()
+        history = model.fit(X_train, y_train, epochs=EPOCHS, batch_size=BATCH_SIZE, verbose=0)
+        train_time = time.time() - t0
+        print(f"Trening zakończony w {train_time:.2f}s")
+
+        # Predykcja na zbiorze testowym
+        t1 = time.time()
+        y_prob = model.predict(X_test, batch_size=BATCH_SIZE, verbose=0).ravel()
+        y_pred = (y_prob >= 0.5).astype(int)
+        predict_time = time.time() - t1
+
+        # Metryki ewaluacyjne
+        acc = accuracy_score(y_test, y_pred) * 100.0
+        labels_order = [1, 0]  # spam=1, ham=0
+        cm = confusion_matrix(y_test, y_pred, labels=labels_order)
+        cm_percent = cm / np.sum(cm) * 100.0
+
+        # Wypisuje wyniki i zapisuje je do pliku
+        print(f"🎯 Accuracy: {acc:.2f}% | Czas treningu: {train_time:.2f}s | Czas predykcji: {predict_time:.2f}s")
+        print("📊 Confusion matrix (%):")
+        print("      spam      ham")
+        print(f"spam  {cm_percent[0,0]:6.2f}%   {cm_percent[0,1]:6.2f}%")
+        print(f"ham   {cm_percent[1,0]:6.2f}%   {cm_percent[1,1]:6.2f}%")
+
+        results_lines.append(f"Model: {name}\n")
+        results_lines.append(f"layers={layers} activation={activation}\n")
+        results_lines.append(f"accuracy={acc:.2f}% train_time={train_time:.2f}s predict_time={predict_time:.2f}s\n")
+        results_lines.append(f"confusion_percent:\nspam_spam={cm_percent[0,0]:6.2f}% spam_ham={cm_percent[0,1]:6.2f}%\n")
+        results_lines.append(f"ham_spam={cm_percent[1,0]:6.2f}% ham_ham={cm_percent[1,1]:6.2f}%\n\n")
+
+        # Zwolnij pamięć modelu przed kolejnym testem
+        tf.keras.backend.clear_session()
+
+    # Zapis do pliku wyników
+    with open(RESULTS_FILE, "w", encoding="utf-8") as f:
+        f.write("\n".join(results_lines))
+    
+    print(f"\n📁 Wyniki zapisano do: {RESULTS_FILE}")
+
+if __name__ == "__main__":
+    main()
+```
+
+
+#### Wyniki
+
+Z wyników zostały usunięte komunikaty oraz warningi TensorFlow dla zwiększenia czytelności wyników.
+
+``` text
+📂 Wczytywanie danych...
+🧾 Przygotowanie korpusu tekstów (preprocessing = True)...
+Przygotowano 75419 dokumentów.
+Trening: 60335, Test: 15084
+🔤 Tworzenie TF-IDF (max_features=20000)...
+Konwersja do macierzy gęstych...
+Input dim = 20000
+
+=== Model: small | layers=[64] | activation=relu ===
+Trening zakończony w 34.64s
+🎯 Accuracy: 99.67% | Czas treningu: 34.64s | Czas predykcji: 1.32s
+📊 Confusion matrix (%):
+      spam      ham
+spam  65.78%    0.09%
+ham   0.24%     33.88%
+
+=== Model: medium | layers=[128, 64] | activation=relu ===
+Trening zakończony w 56.67s
+🎯 Accuracy: 99.64% | Czas treningu: 56.67s | Czas predykcji: 1.03s
+📊 Confusion matrix (%):
+      spam      ham
+spam  65.78%    0.09%
+ham   0.27%     33.85%
+
+=== Model: large | layers=[256, 128, 64] | activation=relu ===
+Trening zakończony w 99.26s
+🎯 Accuracy: 99.61% | Czas treningu: 99.26s | Czas predykcji: 1.17s
+📊 Confusion matrix (%):
+      spam      ham
+spam  65.76%    0.12%
+ham   0.27%     33.85%
+
+=== Model: small_tanh | layers=[64] | activation=tanh ===
+Trening zakończony w 31.32s
+🎯 Accuracy: 99.64% | Czas treningu: 31.32s | Czas predykcji: 0.83s
+📊 Confusion matrix (%):
+      spam      ham
+spam  65.77%    0.11%
+ham   0.25%     33.87%
+
+📁 Wyniki zapisano do: results_dnn.txt
+```
+
+#### Wnioski
+
+Opisz czas przygotowania danych, bo to on zajął tutaj najwięcej czasu, mimo że nie był mierzony
