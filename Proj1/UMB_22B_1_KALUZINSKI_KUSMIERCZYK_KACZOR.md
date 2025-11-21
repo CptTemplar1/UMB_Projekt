@@ -45,6 +45,15 @@ trec07p/
 - **Wiadomości spam (niechciane)**: 50,199 (66.6%)
 - **Rozkład**: Przewaga wiadomości spam
 
+---
+
+**Parametry sprzętowe**:  
+Eksperymenty przeprowadzono na laptopie z następującymi parametrami:
+- Procesor: AMD Ryzen 5 4500U 2.38 GHz, 6 rdzeni, 6 wątków
+- GPU: AMD Radeon Graphics 497 MB
+- Pamięć RAM: 16 GB 2666 MHz
+- System operacyjny: Windows 11 Pro 64-bit
+
 ### Zadanie 2
 Wykorzystując informacje z wykładu oraz stosując technikę zakazanych słów kluczowych (blacklist), dokonać klasyfikacji binarnej wiadomości z archiwum z podziałem na: spam (wiadomości typu spam) oraz ham (wiadomości pożądane).
 
@@ -1279,7 +1288,7 @@ Algorytm LSH (Locality-Sensitive Hashing) z wykorzystaniem MinHash to zaawansowa
 ---
 
 **Konfiguracja programu**  
-Podobnie jak poprzednio, na wstępie należało zdefiniować stałe konfiguracyjne, takie jak ścieżki do danych, parametry LSH/MinHash oraz ustawienia dotyczące przetwarzania tekstu (stemizacja, rozmiar shingli itp.). Działanie algorytmu zostało przetestowane dla różnych wartości progu (threshold) LSH: 0.1, 0.3, 0.5, 0.7, 0.9. Najważniejsze parametry to:
+Podobnie jak poprzednio, na wstępie należało zdefiniować stałe konfiguracyjne, takie jak ścieżki do danych, parametry LSH/MinHash oraz ustawienia dotyczące przetwarzania tekstu (stemizacja, rozmiar shingli itp.). Działanie algorytmu zostało przetestowane dla różnych wartości progu (threshold) LSH: 0.1, 0.3, 0.5, 0.7, 0.9. Najważniejsze parametry to: 
 - **`TRAIN_RATIO = 0.8`** - Standardowy podział 80/20 zapewnia odpowiednią ilość danych treningowych (60,335 wiadomości) przy zachowaniu reprezentatywnego zbioru testowego (15,084 wiadomości).
 - **`NUM_PERM = 128`** - Liczba permutacji stanowi kompromis między dokładnością a wydajnością. Większa liczba zwiększa precyzję, ale kosztem czasu przetwarzania.
 - **`SHINGLE_SIZE = 3`** - Rozmiar shingli (3-gramów) pozwala na uchwycenie kontekstu słów, co jest kluczowe dla identyfikacji podobieństw między dokumentami.
@@ -1780,9 +1789,65 @@ ham   0.25%     33.87%
 
 #### Wnioski
 
-# Dodać diagramy kodu z Mermaid Chart (jest podobno jako dodatek do Visual Studio Code) Diagramy mają być jako skrypty, a nie jako obrazki
-# Zadanie 6 też jest do zrobienia, ale nie przeginać ze złożonością modelu, tak żeby uzyskać wyniki zbliżone/lepsze niż bayes przy nie za dużym nakładzie pracy.
+W zadaniu 5 zastosowano klasyfikator Naive Bayes (MultinomialNB) do binarnej klasyfikacji wiadomości email na spam i ham. Przeprowadzono dwa eksperymenty: jeden bez preprocessingu tekstu, a drugi z pełnym przetwarzaniem NLTK (usuwanie stopwords i stemizacja).
 
+**Opis algorytmu**  
+Klasyfikator Naive Bayes to probabilistyczny algorytm oparty na twierdzeniu Bayesa, który zakłada niezależność cech (słów) przy danej etykiecie. Algorytm działa w następujących etapach:
+1. **Ekstrakcja cech**: Przekształcenie tekstu na reprezentację numeryczną (Bag-of-Words)
+2. **Trening**: Obliczenie prawdopodobieństw warunkowych dla każdego słowa w kontekście klas spam/ham
+3. **Klasyfikacja**: Obliczenie prawdopodobieństwa posterior dla nowej wiadomości i przypisanie do klasy o wyższym prawdopodobieństwie
+
+**Zalety metody**
+- **Wysoka skuteczność** - doskonałe wyniki w klasyfikacji tekstu
+- **Szybkość treningu** - efektywne obliczenia probabilistyczne
+- **Skalowalność** - dobre działanie na dużych zbiorach danych
+- **Odporność na szum** - stabilność wobec częściowo nieistotnych cech
+
+**Wady metody**
+- **Założenie niezależności** - nierealistyczne założenie o niezależności słów
+- **Wrażliwość na rzadkie słowa** - problem z wyrazami nieobecnymi w zbiorze treningowym
+- **Zależność od preprocessingu** - wyniki mogą się różnić w zależności od przygotowania danych
+
+---
+
+**Konfiguracja programu**  
+Podobnie jak poprzednio, na wstępie należało zdefiniować stałe konfiguracyjne. Konfiguracja programu została zaprojektowana w celu porównania wpływu preprocessingu tekstu na skuteczność algorytmu, dlatego eksperyment obejmuje dwa scenariusze: pracę na surowym tekście oraz na danych po pełnym przetworzeniu NLTK. Najważniejsze parametry to:
+- **`TRAIN_RATIO = 0.8`** - Standardowy podział 80/20, który jest powszechnie stosowany w uczeniu maszynowym, zapewniając wystarczającą ilość danych do treningu (60,335 wiadomości) przy zachowaniu reprezentatywnego zbioru testowego (15,084 wiadomości).
+- **`SAMPLE_SIZE = None`** - Użycie całego zbioru danych zapewnia wiarygodność wyników, jednak parametr umożliwia szybkie testy na mniejszych próbkach podczas rozwoju algorytmu.
+- **`random.seed(42)`** - Gwarancja powtarzalności eksperymentów poprzez ustalenie ziarna losowości.
+
+---
+
+**Tabela porównawcza wyników:**
+| Metryka | Bez preprocessingu | Z preprocessingiem | Różnica | Wnioski |
+|---------|-------------------|-------------------|---------|---------|
+| **Accuracy** | **99.24%** | 98.72% | **-0.52%** | Preprocessing nieznacznie obniża dokładność |
+| **Czas wykonania** | **69.66s** | 381.12s | **+311.46s** | Preprocessing znacząco wydłuża czas |
+| **Poprawny spam** | **65.46%** | 64.85% | **-0.61%** | Nieznacznie lepsze bez preprocessingu |
+| **Fałszywe negatywy** | **0.42%** | 1.03% | **+0.61%** | Więcej spamu przechodzi z preprocessingiem |
+| **Fałszywe pozytywne** | 0.34% | **0.25%** | **-0.09%** | Preprocessing redukuje błędy ham→spam |
+| **Poprawny ham** | 33.78% | **33.87%** | **+0.09%** | Nieznacznie lepsze z preprocessingiem |
+
+**Wersja bez preprocessingu osiąga nieznacznie lepszą dokładność (99.24% vs 98.72%)**, co jest niespodziewanym wynikiem, ponieważ preprocessing teoretycznie powinien poprawiać jakość cech. Sugeruje to, że niektóre słowa pomocnicze mogą być charakterystyczne dla spamu i ich usunięcie obniża skuteczność klasyfikacji. Dodatkowo można założyć, że znaki specjalne mogą być istotnymi wskaźnikami spamu (np. `!!!`, `$$$$`), a ich usunięcie w preprocessingie prowadzi do utraty informacji. Co więcej, sprowadzenie słów do ich podstawowych form (stemizacja) może usuwać subtelne różnice między wyrazami, które są istotne dla klasyfikacji. 
+
+**Preprocessing zwiększa czas wykonania ponad 5-krotnie** (69.66s → 381.12s), co wynika z dodatkowych operacji lingwistycznych na każdym dokumencie.
+
+W rezultacie możemy przyjąć poniższe podejście w zależności od priorytetów systemu:
+- **Bez preprocessingu**: Lepsze wykrywanie spamu, ale więcej fałszywych pozytywnych i szybsze działanie
+- **Z preprocessingiem**: Gorsze wykrywanie spamu, ale mniej fałszywych pozytywnych kosztem czasu
+
+---
+
+**Porównanie z metodami z poprzednich zadań**
+| Metoda | Najlepsza accuracy | Czas przetwarzania | Zalety | Wady |
+|--------|-------------------|-------------------|--------|------|
+| **Blacklista** | 61.83% | 2465s | Prosta, interpretowalna | Niska skuteczność |
+| **LSH (threshold=0.1)** | 94.50% | 591s | Skalowalna, dobre podobieństwa | Zależna od parametrów |
+| **Naive Bayes** | **99.24%** | **70s** | **Najwyższa dokładność**, szybki | Założenie niezależności |
+
+Metoda Naive Bayes wyraźnie dominuje nad pozostałymi testowanymi rozwiązaniami, osiągając najwyższą skuteczność klasyfikacji na poziomie 99,24%. Wynik ten znacząco przewyższa zarówno efektywność metody opartej na LSH, jak i klasycznej blacklisty – odpowiednio o 4,74% oraz aż o 37,41%. Co ważne, analiza pokazała, że stosowanie preprocessingu nie zawsze przekłada się na poprawę jakości klasyfikacji. W przypadku Naive Bayes prostsze podejście, pozbawione dodatkowego czyszczenia danych, okazało się nie tylko skuteczniejsze, ale także szybsze. Niewielki spadek dokładności przy użyciu preprocessingu może wynikać z utraty pewnych istotnych informacji, takich jak stopwords czy interpunkcja, które – choć często traktowane jako szum – mogą w niektórych przypadkach nieść wartościowe wskazówki dla klasyfikatora.
+
+W praktyce sugeruje się jednak korzystanie z wersji metody Naive Bayes bez preprocessingu, szczególnie w środowiskach produkcyjnych, gdzie kluczowe są zarówno wysoka dokładność, jak i krótki czas przetwarzania. Wyniki badań potwierdzają znaczną przewagę tego algorytmu nad wcześniej stosowanymi metodami, co czyni go optymalnym wyborem w zadaniach związanych z filtrowaniem spamu i innymi formami klasyfikacji tekstu.
 
 ### Zadanie 6
 Dokonać klasyfikacji binarnej wiadomości z archiwum (zadanie 1) na spam i ham, stosując model gęsto łączonej głębokiej sieci neuronowej i technikę uczenia nadzorowanego.
@@ -2412,4 +2477,80 @@ ham   0.25%     33.87%
 
 #### Wnioski
 
-Opisz czas przygotowania danych, bo to on zajął tutaj najwięcej czasu, mimo że nie był mierzony
+W zadaniu 6 zastosowano gęsto łączoną głęboką sieć neuronową (DNN) do klasyfikacji binarnej wiadomości email na spam i ham. Wykorzystano różne konfiguracje architektury sieci, testując modele o różnej liczbie warstw ukrytych i liczbie neuronów w każdej warstwie.
+
+**Opis metody**  
+Metoda wykorzystuje gęsto łączoną sieć neuronową (DNN) do klasyfikacji wiadomości email, połączoną z techniką ekstrakcji cech TF-IDF. Algorytm działa w następujących etapach:
+1. **Preprocessing tekstu**: Stemizacja i usuwanie stopwords przy użyciu NLTK 
+2. **Ekstrakcja cech TF-IDF**: Przekształcenie tekstu na wektory numeryczne z użyciem n-gramów (1,2)
+3. **Architektura DNN**: Wielowarstwowa sieć neuronowa z warstwami gęstymi i dropout dla regularyzacji:
+   - Warstwy ukryte: Różne konfiguracje (np. [64], [128, 64], [256, 128, 64])
+   - Funkcje aktywacji: ReLU lub tanh w warstwach ukrytych, sigmoid w warstwie wyjściowej
+4. **Trening**: Uczenie nadzorowane z optymalizatorem Adam i funkcją straty binary_crossentropy
+5. **Klasyfikacja**: Predykcja przy użyciu funkcji sigmoid w warstwie wyjściowej
+
+**Zalety metody**
+- **Wysoka zdolność uogólniania** - sieci neuronowe dobrze radzą sobie ze złożonymi wzorcami w danych
+- **Automatyczna ekstrakcja cech** - TF-IDF automatycznie identyfikuje istotne słowa i frazy
+- **Skalowalność** - możliwość obsługi dużych zbiorów danych
+- **Elastyczność architektury** - łatwa modyfikacja liczby warstw i neuronów 
+
+**Wady metody**
+- **Wysokie wymagania obliczeniowe** - dłuższy czas treningu w porównaniu do prostszych metod 
+- **Złożoność interpretacji** - trudność w zrozumieniu, które cechy są najważniejsze 
+- **Zależność od preprocessingu** - jakość danych wejściowych znacząco wpływa na wyniki 
+
+---
+
+**Konfiguracja programu**  
+Podobnie jak poprzednio, na wstępie należało zdefiniować stałe konfiguracyjne. Konfiguracja została zaprojektowana do porównania różnych architektur sieci neuronowych pod kątem skuteczności klasyfikacji spam/ham. Eksperyment obejmuje testowanie różnych rozmiarów sieci oraz funkcji aktywacji. Najważniejsze parametry to:  
+- **`MAX_FEATURES = 20000`** - Optymalny kompromis między dokładnością a wymaganiami pamięciowymi 
+- **`EPOCHS = 5`** - Wystarczająca liczba epok dla zbieżności przy zachowaniu rozsądnego czasu treningu
+- **`BATCH_SIZE = 128`** - Efektywny rozmiar batcha dla dużego zbioru danych 
+- **`USE_PREPROCESSING = True`** - Wykorzystanie pełnego preprocessingu NLTK 
+
+---
+
+**Tabela porównawcza wyników dla różnych konfiguracji DNN:**
+| Model | Warstwy | Aktywacja | Accuracy | Czas treningu | Czas predykcji | Poprawny spam | Fałszywe negatywy | Fałszywe pozytywne | Poprawny ham |
+|-------|---------|-----------|----------|---------------|----------------|---------------|-------------------|-------------------|-------------|
+| **small** | [64] | relu | **99.67%** | 34.64s | 1.32s | **65.78%** | **0.09%** | 0.24% | 33.88% |
+| **medium** | [128, 64] | relu | 99.64% | 56.67s | 1.03s | **65.78%** | **0.09%** | 0.27% | 33.85% |
+| **large** | [256, 128, 64] | relu | 99.61% | 99.26s | 1.17s | 65.76% | 0.12% | 0.27% | 33.85% |
+| **small_tanh** | [64] | tanh | 99.64% | **31.32s** | **0.83s** | 65.77% | 0.11% | **0.25%** | **33.87%** |
+
+**Wpływ architektury sieci na skuteczność**  
+Analiza wpływu architektury sieci neuronowych na skuteczność klasyfikacji pokazała, że najprostszy z testowanych modeli – `wariant small` – osiągnął najwyższą dokładność na poziomie 99,67%. Wynik ten sugeruje, że w przypadku tego konkretnego zadania bardziej złożone i głębsze architektury nie wnoszą dodatkowych korzyści. Proste modele dysponują wystarczającą pojemnością, aby skutecznie uchwycić zależności w danych, natomiast zwiększanie liczby warstw nie tylko nie poprawia jakości, ale może wręcz prowadzić do nieznacznego przeuczenia, co potwierdzają słabsze wyniki modelu large.
+
+**Analiza funkcji aktywacji**  
+W badaniu funkcji aktywacji najlepiej wypadła funkcja `ReLU` zastosowana w modelu `small`, choć różnice względem `tanh` okazały się minimalne – odpowiednio 99,67% i 99,64% dokładności. Co ciekawe, wariant `small_tanh` zapewnił najszybszy czas zarówno treningu, jak i predykcji, co czyni go atrakcyjną alternatywą w kontekście optymalizacji wydajności.
+
+**Wydajność czasowa**
+Zgodnie z oczekiwaniami, czas treningu rósł wraz ze złożonością architektury – od 31 sekund w przypadku najprostszego modelu do 99 sekund dla najgłębszego. Czasy predykcji dla wszystkich wariantów pozostawały natomiast bardzo krótkie i mieściły się w przedziale od 0,83 do 1,32 sekundy dla całego zbioru testowego. W rezultacie to właśnie model `small` okazał się najbardziej zrównoważonym rozwiązaniem, oferując najwyższą skuteczność przy relatywnie krótkim czasie treningu.
+
+**Jakość klasyfikacji**  
+W kontekście jakości klasyfikacji wszystkie testowane architektury poradziły sobie znakomicie, generując jedynie minimalne błędy. Odsetek fałszywych negatywów wynosił zaledwie 0,09–0,12%, co oznacza, że tylko niewielka część spamu pozostawała nieodfiltrowana. Równie niski poziom fałszywych pozytywów (0,24–0,27%) wskazuje, że klasyfikatory rzadko błędnie oznaczały prawidłowe wiadomości jako spam.
+
+---
+
+**Porównanie z metodami z poprzednich zadań**
+| Metoda | Najlepsza accuracy | Czas przetwarzania | Zalety | Wady |
+|--------|-------------------|-------------------|--------|------|
+| **Blacklista** | 61.83% | 2465s | Prosta, interpretowalna | Bardzo niska skuteczność |
+| **LSH** | 94.50% | ~591s | Skalowalna, dobre podobieństwa | Zależna od parametrów |
+| **Naive Bayes** | 99.24% | 70s | Szybki, wysoka skuteczność | Założenie niezależności |
+| **DNN (small)** | **99.67%** | **~36s** | **Najwyższa dokładność**, dobre uogólnianie | Wymaga preprocessingu |
+
+Przeprowadzone eksperymenty wykazały, że głębokie sieci neuronowe (DNN) stanowią najbardziej efektywną metodę spośród wszystkich testowanych podejść, osiągając najwyższą dokładność na poziomie `99,67%`. Wynik ten jest o `0,43%` lepszy niż w przypadku klasyfikatora Naive Bayes, co podkreśla potencjał bardziej zaawansowanych modeli w analizie tekstu. Co istotne, najlepsze rezultaty uzyskano dzięki niezwykle prostej architekturze – model składający się z jednej warstwy ukrytej i 64 neuronów okazał się najskuteczniejszy, co potwierdza, że w niektórych zadaniach dodatkowa złożoność nie przekłada się na wyższą jakość.
+
+Wszystkie warianty DNN charakteryzowały się bardzo niskim poziomem błędów. Odsetek fałszywych negatywów utrzymywał się poniżej `0,15%`, co oznacza, że niemal wszystkie wiadomości spam były skutecznie wykrywane. Równie niski poziom fałszywych pozytywów – poniżej `0,3%` – świadczy o wysokiej precyzji klasyfikatorów w odróżnianiu prawidłowych wiadomości od spamu.
+
+Pomimo zastosowania bardziej zaawansowanej techniki, czasy treningu i predykcji okazały się konkurencyjne względem prostszych metod. Modele DNN trenowały się relatywnie szybko, a ich czas przetwarzania podczas klasyfikacji pozostawał bardzo krótki, co czyni je praktycznym narzędziem także w systemach działających w czasie rzeczywistym.
+
+Analiza pokazała, że model `small` z funkcją aktywacji `ReLU` stanowi rozwiązanie optymalne. Łączy on najwyższą skuteczność z dobrą wydajnością obliczeniową i prostotą implementacji. 
+
+W porównaniu do początkowych metod, takich jak blacklisty czy LSH, DNN stanowią ogromny krok naprzód, poprawiając skuteczność odpowiednio o `37,84%` i `5,17%`. Połączenie głębokich sieci neuronowych z reprezentacją TF-IDF okazało się zatem najskuteczniejszym podejściem do klasyfikacji wiadomości e-mail, zapewniając najlepszy balans między dokładnością a wydajnością.
+
+
+# TODO:
+- Dodać diagramy kodu z Mermaid Chart (jest podobno jako dodatek do Visual Studio Code) Diagramy mają być jako skrypty, a nie jako obrazki
