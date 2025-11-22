@@ -1,0 +1,2 @@
+zrobić sobie podfolder tam z tymi obrazkami i wstawiać linkować do markdowna
+lub coś z JUnit i zdjęciami
