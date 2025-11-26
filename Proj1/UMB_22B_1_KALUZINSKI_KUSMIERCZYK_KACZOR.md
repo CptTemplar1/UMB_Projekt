@@ -58,13 +58,10 @@ Eksperymenty przeprowadzono na laptopie z następującymi parametrami:
 Wykorzystując informacje z wykładu oraz stosując technikę zakazanych słów kluczowych (blacklist), dokonać klasyfikacji binarnej wiadomości z archiwum z podziałem na: spam (wiadomości typu spam) oraz ham (wiadomości pożądane).
 
 **Uwagi:**
-1. Przed przystąpieniem do procesu klasyfikacji usunąć z wiadomości stopping words (np. the, is, are, . . . ),
-dokonać stemizacji słów w wiadomościach oraz ekstrakcji tokenów.
+1. Przed przystąpieniem do procesu klasyfikacji usunąć z wiadomości stopping words (np. the, is, are, . . . ), dokonać stemizacji słów w wiadomościach oraz ekstrakcji tokenów.
 2. Do realizacji zadania użyć języka Python oraz bibliotek: string, email, NLTK, os.
-3. Zbiór zakazanych słów kluczowych powinien być wygenerowany na podstawie danych z podzbioru treningowego,
-natomiast ewaluacja danych uzyskanych z podzbioru testowego.
-4. Wynikiem ewaluacji powinna być macierz konfuzji (procentowa) oraz wartość wskaźnika accuracy, również w
-postaci procentowej.
+3. Zbiór zakazanych słów kluczowych powinien być wygenerowany na podstawie danych z podzbioru treningowego, natomiast ewaluacja danych uzyskanych z podzbioru testowego.
+4. Wynikiem ewaluacji powinna być macierz konfuzji (procentowa) oraz wartość wskaźnika accuracy, również w postaci procentowej.
 
 #### Implementacja
 
@@ -536,6 +533,102 @@ def main():
 
 if __name__ == "__main__":
     main()
+```
+
+#### Diagramy kodu
+
+**Diagram przedstawia główny przepływ programu (Funkcja `main`)**
+```Mermaid
+graph TD
+    Start([Start Programu]) --> Config[Konfiguracja ścieżek i parametrów]
+    Config --> LoadIndex[load_index: Wczytanie etykiet i ścieżek]
+    
+    LoadIndex --> Shuffle[Losowe przemieszanie danych]
+    Shuffle --> SplitData{Podział Danych}
+    
+    SplitData -->|80%| TrainSet[Zbiór Treningowy]
+    SplitData -->|20%| TestSet[Zbiór Testowy]
+    
+    subgraph Test_1_Stemming [Test 1: Ze Stemizacją]
+        Direction1[Uruchom evaluate_model]
+        Param1[Parametr use_stemming = True]
+        Result1[Wynik: Accuracy, Confusion Matrix, Czas]
+        
+        Direction1 --- Param1
+        Param1 --> Result1
+    end
+    
+    subgraph Test_2_NoStemming [Test 2: Bez Stemizacji]
+        Direction2[Uruchom evaluate_model]
+        Param2[Parametr use_stemming = False]
+        Result2[Wynik: Accuracy, Confusion Matrix, Czas]
+        
+        Direction2 --- Param2
+        Param2 --> Result2
+    end
+    
+    TrainSet --> Test_1_Stemming
+    TestSet --> Test_1_Stemming
+    
+    TrainSet --> Test_2_NoStemming
+    TestSet --> Test_2_NoStemming
+    
+    Result1 --> Compare[Porównanie wyników]
+    Result2 --> Compare
+    
+    Compare --> PrintReport[Wyświetlenie raportu w konsoli]
+    PrintReport --> SaveFile[Zapis do results_stemming.txt]
+    SaveFile --> End([Koniec])
+```
+
+**Diagram przedstawia szczegółową logikę przetwarzania i klasyfikacji**
+```Mermaid
+graph TD
+    subgraph Preprocessing [Funkcja: preprocess_text]
+        RawText[Surowy Tekst] --> Clean[Lower case + Usunięcie interpunkcji]
+        Clean --> Tokenize[Tokenizacja]
+        Tokenize --> StopWords[Usunięcie Stopwords]
+        StopWords --> CheckStem{use_stemming?}
+        CheckStem -- TAK --> Porter[PorterStemmer]
+        CheckStem -- NIE --> NoStem[Bez zmian]
+        Porter --> Tokens[Czyste Tokeny]
+        NoStem --> Tokens
+    end
+
+    subgraph Training_Phase [Faza 1: Budowanie Blacklist]
+        InputTrain[Zbiór Treningowy] --> LoadEmail1[Wczytaj treść e-maila]
+        LoadEmail1 --> Proc1[preprocess_text]
+        Proc1 --> CountWords[Zlicz wystąpienia słów w Spam i Ham]
+        CountWords --> CalcRatio[Oblicz współczynnik Spam/Ham dla słów]
+        CalcRatio --> Sort[Sortuj malejąco]
+        Sort --> TopN[Wybierz TOP_N słów]
+        TopN --> Blacklist[Utworzona Blacklist]
+    end
+
+    subgraph Testing_Phase [Faza 2: Klasyfikacja i Ewaluacja]
+        InputTest[Zbiór Testowy] --> LoadEmail2[Wczytaj treść e-maila]
+        LoadEmail2 --> Proc2[preprocess_text]
+        Proc2 --> Classify{Czy jakikolwiek token<br/>jest na Blacklist?}
+        Blacklist -.-> Classify
+        
+        Classify -- TAK --> PredSpam[Predykcja: SPAM]
+        Classify -- NIE --> PredHam[Predykcja: HAM]
+        
+        PredSpam --> CompareMetric[Porównaj z etykietą rzeczywistą]
+        PredHam --> CompareMetric
+    end
+
+    CompareMetric --> Metrics[Oblicz Accuracy i Confusion Matrix]
+    Metrics --> Return[Zwróć wyniki]
+
+    %% Stylizacja
+    classDef process fill:#e1f5fe,stroke:#01579b,stroke-width:2px;
+    classDef decision fill:#fff9c4,stroke:#fbc02d,stroke-width:2px;
+    classDef data fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px;
+
+    class Proc1,Proc2,LoadEmail1,LoadEmail2,CountWords,CalcRatio,Sort,TopN process;
+    class CheckStem,Classify decision;
+    class Blacklist,Tokens,RawText data;
 ```
 
 #### Wyniki
@@ -1263,6 +1356,81 @@ ham   0.04%     34.08%
 📁 Wyniki zapisano do: results_lsh.txt
 ```
 
+#### Diagramy kodu
+
+**Diagram przedstawia główny przepływ programu**
+```Mermaid
+graph TD
+    Start([Start Programu]) --> Config[Konfiguracja LSH/MinHash: NUM_PERM, SHINGLE_SIZE, THRESHOLDS]
+    Config --> LoadIndex[Wczytanie Danych i Podział na Trening/Test]
+    
+    LoadIndex --> PrepareMH[prepare_train_min_hashes: Budowa MinHash dla zbioru Treningowego]
+    
+    subgraph Trening_MinHash [Trening: Budowa Modeli Dokumentów]
+        A[E-mail Treningowy] --> B["Preprocessing tekstu (Shingle, Stemming)"]
+        B --> C["Utworzenie unikatowych Shingli (k-gramów)"]
+        C --> D[build_minhash_from_shingles]
+        D --> MH["MinHash (podpis) dokumentu"]
+    end
+    
+    PrepareMH --> MH_Map["Zbiór MinHashów Treningowych (MH_Map)"]
+    
+    MH_Map --> LoopStart[(Dla każdego THRESHOLD)]
+    
+    subgraph Test_LSH_Threshold [Pętla testowa LSH]
+        LoopStart --> BuildLSH["MinHashLSH(threshold)"]
+        BuildLSH --> Insert["Wstaw MinHashy treningowe do LSH (lsh.insert)"]
+        Insert --> Classify[classify_with_lsh: Klasyfikacja zbioru Testowego]
+        
+        Classify --> Subgraph_Classification[Sub: Logika Klasyfikacji]
+        
+        Subgraph_Classification --> Metrics[Oblicz Accuracy i Confusion Matrix]
+        Metrics --> PrintSave[Wyświetl i zapisz Wyniki dla THRESHOLD]
+    end
+    
+    LoopStart --> Test_LSH_Threshold
+    Test_LSH_Threshold --> LoopEnd["(Koniec pętli)"]
+    LoopEnd --> FinalSave[Zapis końcowego raportu do pliku]
+    FinalSave --> End([Koniec])
+
+    %% Połączenie Podgrafów
+    MH_Map --> A
+```
+
+**Diagram przedstawia szczegółową logikę klasyfikacji (Funkcja `classify_with_lsh`)**
+```Mermaid
+graph TD
+    
+    InputTest[E-mail Testowy] --> Proc[Preprocessing i Utworzenie MinHash]
+    Proc --> QueryLSH["lsh.query(Test_MinHash)"]
+    
+    QueryLSH --> Matches[Lista ID dopasowanych dokumentów treningowych]
+    
+    Matches --> CheckMatches{Czy lista dopasowań jest pusta?}
+    
+    CheckMatches -- TAK --> Default["Przypisz: DEFAULT_LABEL (ham)"]
+    
+    CheckMatches -- NIE --> Votes[Pobierz etykiety dopasowanych dokumentów]
+    Votes --> MajorityVote["Głosowanie Większościowe (Counter.most_common)"]
+    MajorityVote --> PredictedLabel["Ostateczna Predykcja (spam/ham)"]
+    
+    Default --> Compare[Porównaj Predykcję z Etykietą Rzeczywistą]
+    PredictedLabel --> Compare
+    
+    Compare --> Aggregation["Agregacja wyników (y_true, y_pred)"]
+    Aggregation --> Evaluation["Obliczanie metryk (Accuracy, CM)"]
+    Evaluation --> Return[Zwróć wyniki do Pętli THRESHOLD]
+
+    %% Stylizacja
+    classDef process fill:#e1f5fe,stroke:#01579b,stroke-width:2px;
+    classDef decision fill:#fff9c4,stroke:#fbc02d,stroke-width:2px;
+    classDef data fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px;
+    
+    class Proc,QueryLSH,MajorityVote process;
+    class CheckMatches decision;
+    class Matches,InputTest data;
+```
+
 #### Wnioski
 
 W zadaniu 4 zastosowano algorytm Locality Sensitive Hashing (LSH) z MinHash do klasyfikacji binarnej wiadomości email na spam i ham. Przetestowano różne wartości progu (threshold) dla LSH, co miało wpływ na dokładność klasyfikacji.
@@ -1785,6 +1953,103 @@ spam  64.85%    1.03%
 ham   0.25%     33.87%
 
 📁 Wyniki zapisano do: results_naive_bayes.txt
+```
+
+#### Diagramy kodu
+
+**Diagram przedstawia główny przepływ programu**
+```Mermaid
+graph TD
+    Start([Start Programu]) --> Config[Konfiguracja i Ziarno losowości]
+    Config --> LoadIndex[Wczytanie i przemieszanie listy plików]
+    
+    LoadIndex --> SplitData{Podział Danych}
+    
+    SplitData -->|80%| TrainSet[Zbiór Treningowy]
+    SplitData -->|20%| TestSet[Zbiór Testowy]
+    
+    subgraph Experiment_1 [Eksperyment 1: Surowy Tekst]
+        Input1[Dane wejściowe]
+        Param1["use_preprocessing = False"]
+        Run1["run_naive_bayes(..., False)"]
+        Result1[Wynik: Accuracy, CM]
+        
+        Input1 --- Param1
+        Param1 --> Run1
+        Run1 --> Result1
+    end
+    
+    subgraph Experiment_2 [Eksperyment 2: NLTK Preprocessing]
+        Input2[Dane wejściowe]
+        Param2["use_preprocessing = True"]
+        Run2["run_naive_bayes(..., True)"]
+        Result2[Wynik: Accuracy, CM]
+        
+        Input2 --- Param2
+        Param2 --> Run2
+        Run2 --> Result2
+    end
+    
+    TrainSet --> Experiment_1
+    TestSet --> Experiment_1
+    
+    TrainSet --> Experiment_2
+    TestSet --> Experiment_2
+    
+    Result1 --> SaveFile[Zapis wyników do results_naive_bayes.txt]
+    Result2 --> SaveFile
+    SaveFile --> End([Koniec])
+```
+
+**Diagram przedstawia szczegółową logikę algorytmu NaiveBayes (Funkcja `run_naive_bayes`)**
+```Mermaid
+graph TD
+    InputEntries[Lista ścieżek do plików] --> LoopFiles[Pętla po plikach]
+    
+    LoopFiles --> LoadContent["load_email_content (Subject + Body)"]
+    
+    LoadContent --> CheckPrep{"use_preprocessing?"}
+    
+    %% Ścieżka preprocessing (NLTK)
+    CheckPrep -- TAK --> Lower[Lower case + Usunięcie interpunkcji]
+    Lower --> Tokenize["word_tokenize()"]
+    Tokenize --> StopWords[Usunięcie Stopwords]
+    StopWords --> Stemming["PorterStemmer (Stemizacja)"]
+    Stemming --> Rejoin[Złączenie tokenów w string]
+    
+    %% Ścieżka bez preprocessingu
+    CheckPrep -- NIE --> RawText[Pozostaw tekst bez zmian]
+    
+    Rejoin --> TextList[Lista tekstów]
+    RawText --> TextList
+    
+    subgraph Vectorization [Wektoryzacja Scikit-learn]
+        TextList --> CountVec["CountVectorizer (Bag of Words)"]
+        CountVec --> Matrix["Macierz Cech (X_train / X_test)"]
+    end
+    
+    subgraph Machine_Learning [Model MultinomialNB]
+        Matrix --> IsTrain{"Czy to zbiór treningowy?"}
+        
+        IsTrain -- TAK --> Fit["model.fit(X_train, y_train)"]
+        IsTrain -- NIE --> Predict["model.predict(X_test)"]
+        
+        Fit -.-> ModelReady[Model wytrenowany]
+        ModelReady -.-> Predict
+    end
+    
+    Predict --> PredLabels[Etykiety przewidziane]
+    PredLabels --> Metrics["Oblicz Accuracy i Confusion Matrix"]
+    Metrics --> Return[Zwróć wyniki]
+
+    %% Stylizacja
+    classDef process fill:#e1f5fe,stroke:#01579b,stroke-width:2px;
+    classDef decision fill:#fff9c4,stroke:#fbc02d,stroke-width:2px;
+    classDef sklearn fill:#ffe0b2,stroke:#e65100,stroke-width:2px;
+    
+    class LoadContent,Lower,Tokenize,StopWords,Stemming process;
+    class CheckPrep,IsTrain decision;
+    class CountVec,Fit,Predict,Matrix sklearn;
 ```
 
 #### Wnioski
@@ -2426,6 +2691,93 @@ if __name__ == "__main__":
     main()
 ```
 
+#### Diagramy kodu
+
+**Diagram przedstawia główny przepływ programu (Przygotowanie danych i pętla eksperymentalna)**
+```Mermaid
+graph TD
+    Start([Start Programu]) --> Config[Konfiguracja parametrów i ziarna losowości]
+    
+    Config --> LoadData[Wczytanie indeksu plików i losowe przemieszanie]
+    
+    LoadData --> PrepareCorpus["prepare_corpus(..., USE_PREPROCESSING)"]
+    
+    PrepareCorpus --> SplitData{Podział na Trening/Test}
+    
+    SplitData -->|80%| TrainText[Teksty Treningowe]
+    SplitData -->|20%| TestText[Teksty Testowe]
+    
+    subgraph Vectorization [Wektoryzacja TF-IDF]
+        TrainText --> BuildVec["build_vectorizer(TrainText)"]
+        BuildVec --> VecModel[Wektorizer TF-IDF]
+        BuildVec --> X_Train_Sparse[Macierz rzadka X_train]
+        
+        TestText --> Transform["vectorizer.transform(TestText)"]
+        Transform --> X_Test_Sparse[Macierz rzadka X_test]
+        
+        X_Train_Sparse --> ToDense1["Konwersja na Dense Array (numpy)"]
+        X_Test_Sparse --> ToDense2["Konwersja na Dense Array (numpy)"]
+        
+        ToDense1 --> X_Train[X_train: Tensor wejściowy]
+        ToDense2 --> X_Test[X_test: Tensor wejściowy]
+    end
+    
+    X_Train --> LoopModels((Pętla po MODEL_CONFIGS))
+    
+    subgraph Model_Evaluation [Ewaluacja Modeli DNN]
+        LoopModels --> Build["build_model(layers, activation)"]
+        Build --> Train["model.fit(X_train, y_train)"]
+        Train --> Predict["model.predict(X_test)"]
+        Predict --> Evaluate["Oblicz Accuracy i Confusion Matrix"]
+        Evaluate --> SaveRes[Zapisz wynik dla modelu]
+    end
+    
+    SaveRes --> CheckLoop{Kolejny model?}
+    CheckLoop -- TAK --> LoopModels
+    CheckLoop -- NIE --> SaveFile[Zapisz results_dnn.txt]
+    SaveFile --> End([Koniec])
+```
+
+**Diagram przedstawia szczegółową logikę budowy i treningu sieci neuronowej (`build_model` i proces uczenia)**
+```Mermaid
+graph TD
+    InputParams[Parametry: input_dim, layer_sizes, activation] --> InitSeq["model = Sequential()"]
+    
+    InitSeq --> LoopLayers[Pętla po warstwach ukrytych]
+    
+    LoopLayers --> AddDense["model.add(Dense(size, activation))"]
+    AddDense --> AddDropout["model.add(Dropout(0.2))"]
+    
+    AddDropout --> LoopLayers
+    
+    LoopLayers -- Koniec warstw --> OutputLayer["model.add(Dense(1, activation='sigmoid'))"]
+    
+    OutputLayer --> Compile["model.compile(optimizer='Adam', loss='binary_crossentropy')"]
+    
+    Compile --> ReadyModel[Skompilowany Model TensorFlow]
+    
+    subgraph Training_Process [Proces Uczenia]
+        ReadyModel --> Fit["model.fit(epochs=5, batch_size=128)"]
+        Fit --> Weights[Zaktualizowane wagi sieci]
+    end
+    
+    subgraph Prediction_Process [Proces Predykcji]
+        Weights --> PredictRaw["model.predict(X_test) -> y_prob"]
+        PredictRaw --> Threshold["y_pred = (y_prob >= 0.5)"]
+        Threshold --> FinalPred[Klasy binarne: 0 lub 1]
+    end
+    
+    FinalPred --> Metrics["Porównanie z y_true -> CM, Accuracy"]
+    
+    %% Stylizacja
+    classDef process fill:#e1f5fe,stroke:#01579b,stroke-width:2px;
+    classDef tf_logic fill:#ffecb3,stroke:#ff6f00,stroke-width:2px;
+    classDef io fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px;
+
+    class InitSeq,AddDense,AddDropout,OutputLayer,Compile tf_logic;
+    class Fit,PredictRaw,Threshold process;
+    class InputParams,FinalPred,Metrics io;
+```
 
 #### Wyniki
 
@@ -2550,7 +2902,3 @@ Pomimo zastosowania bardziej zaawansowanej techniki, czasy treningu i predykcji 
 Analiza pokazała, że model `small` z funkcją aktywacji `ReLU` stanowi rozwiązanie optymalne. Łączy on najwyższą skuteczność z dobrą wydajnością obliczeniową i prostotą implementacji. 
 
 W porównaniu do początkowych metod, takich jak blacklisty czy LSH, DNN stanowią ogromny krok naprzód, poprawiając skuteczność odpowiednio o `37,84%` i `5,17%`. Połączenie głębokich sieci neuronowych z reprezentacją TF-IDF okazało się zatem najskuteczniejszym podejściem do klasyfikacji wiadomości e-mail, zapewniając najlepszy balans między dokładnością a wydajnością.
-
-
-# TODO:
-- Dodać diagramy kodu z Mermaid Chart (jest podobno jako dodatek do Visual Studio Code) Diagramy mają być jako skrypty, a nie jako obrazki
