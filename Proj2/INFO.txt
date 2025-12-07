@@ -1,0 +1,10 @@
+zrobić sobie podfolder tam z tymi obrazkami i wstawiać linkować do markdowna
+lub coś z JUnit i zdjęciami
+
+Do 2 projektu nie korzystamy z tego pliku paymentFraud.csv co ostatnio wysyłał, tylko mamy sobie pobrać JEDNĄ z wymienionych tam w instrukcji baz danych i na niej pracować. Bazę trzeba pobrać z internetu. Zadania 1, 2 chyba nie wymagają żadnej bazy danych i mamy pracować na wyidealizowanych danych, a jedna z tych baz będzie potrzebna dopiero przy zadaniach 3-5.
+
+Nie trzeba przepisywać poleceń, ani zawartości tego długiego PDFa z instrukcją do markdowna, wystarczy dać odnośniki, że to do pierwszego zadania, to do drugiego, i tak dalej. 
+
+Obrazki umieszczamy w osobnym folderze w katalogu w którym jest plik markdowna. W markdownie robimy odnośniki do tych plików.
+
+Skończony projekt 1 trzeba mu już wysłać na maila.
