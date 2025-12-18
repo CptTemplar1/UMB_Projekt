@@ -2,8 +2,8 @@ import numpy as np
 import pandas as pd
 import os
 
+# Generowanie danych do Zadania 1 (Idealne/Zbalansowane)
 def generate_ideal_data(n_norm=800, n_attack=200, seed=42):
-    """Generuje dane do Zadania 1 (Idealne)."""
     np.random.seed(seed)
     
     # Parametry (zgodne z treścią zadania)
@@ -39,8 +39,8 @@ def generate_ideal_data(n_norm=800, n_attack=200, seed=42):
     df = df.sample(frac=1, random_state=seed).reset_index(drop=True)
     return df, feature_names
 
+# Generowanie danych do Zadania 2 (Realistyczne/Niezbalansowane)
 def generate_realistic_data(n_norm=950, n_obv=20, n_med=15, n_sub=15, seed=42):
-    """Generuje dane do Zadania 2 (Realistyczne/Niezbalansowane)."""
     np.random.seed(seed)
     
     mu_norm = np.array([50, 800, 2.5, 0.2, 5, 30, 2])
@@ -84,11 +84,10 @@ def generate_realistic_data(n_norm=950, n_obv=20, n_med=15, n_sub=15, seed=42):
     df = df.sample(frac=1, random_state=seed).reset_index(drop=True)
     return df, feature_names
 
+# Wczytywanie danych CICIDS 2017 z plików CSV dla Zadania 3
+# data_dir: ścieżka do folderu data/CICIDS2017/
 def load_cicids_data(data_dir, sample_size=50000, seed=42):
-    """
-    Wczytuje surowe pliki CSV dla Zadania 3.
-    data_dir: ścieżka do folderu data/CICIDS2017/
-    """
+
     files = {
         'normal': 'Monday-WorkingHours.pcap_ISCX.csv',
         'ddos': 'Friday-WorkingHours-Afternoon-DDoS.pcap_ISCX.csv',

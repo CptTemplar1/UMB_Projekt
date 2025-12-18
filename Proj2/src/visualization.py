@@ -5,8 +5,8 @@ import numpy as np
 from sklearn.metrics import confusion_matrix
 from sklearn.model_selection import learning_curve
 
+# Rysuje rozkłady gęstości dla cech
 def plot_distributions(df, feature_names, target_col='Target', title_prefix=''):
-    """Rysuje rozkłady gęstości dla cech."""
     n_features = len(feature_names)
     n_cols = 2
     n_rows = (n_features + 1) // n_cols
@@ -28,8 +28,8 @@ def plot_distributions(df, feature_names, target_col='Target', title_prefix=''):
     plt.tight_layout()
     plt.show()
 
+# Rysuje macierz korelacji Pearsona
 def plot_correlation_matrix(df, feature_names):
-    """Rysuje macierz korelacji Pearsona."""
     plt.figure(figsize=(10, 8))
     # Obliczamy korelację tylko dla cech numerycznych
     corr = df[feature_names].corr()
@@ -39,12 +39,12 @@ def plot_correlation_matrix(df, feature_names):
     plt.title("Macierz korelacji Pearsona")
     plt.show()
 
+# Rysuje wykres słupkowy współczynników modelu
 def plot_betas(model, feature_names, title='Współczynniki Beta (Globalne znaczenie cech)'):
-    """Rysuje wykres słupkowy współczynników modelu."""
     if hasattr(model, 'coef_'):
         beta = model.coef_[0]
     else:
-        print("Model nie posiada atrybutu coef_ (nie jest liniowy?).")
+        print("Model nie posiada atrybutu coef_ (nie jest liniowy).")
         return
 
     df = pd.DataFrame({'Feature': feature_names, 'Beta': beta, 'Abs': np.abs(beta)})
@@ -59,11 +59,9 @@ def plot_betas(model, feature_names, title='Współczynniki Beta (Globalne znacz
     plt.grid(True, alpha=0.3)
     plt.show()
 
+# Rysuje wpływ cech na decyzję dla KONKRETNEJ próbki (lokalna interpretowalność)
+# Wykres pokazuje beta_i * x_i.
 def plot_feature_impact(model, X_sample, feature_names, sample_idx=0, prediction_prob=None):
-    """
-    Rysuje wpływ cech na decyzję dla KONKRETNEJ próbki (lokalna interpretowalność).
-    Wykres pokazuje beta_i * x_i.
-    """
     if not hasattr(model, 'coef_'): return
     
     beta = model.coef_[0]
@@ -85,8 +83,10 @@ def plot_feature_impact(model, X_sample, feature_names, sample_idx=0, prediction
     plt.xlabel('Wkład w decyzję (Beta * Wartość Cechy)')
     plt.show()
 
+# Rysuje macierz pomyłek z dodatkowymi informacjami takimi jak procenty i liczby
 def plot_confusion_matrix(y_true, y_pred, title='Macierz Pomyłek'):
     cm = confusion_matrix(y_true, y_pred)
+    
     # Dodanie etykiet z liczbami i procentami
     cm_sum = np.sum(cm, axis=1, keepdims=True)
     cm_perc = cm / cm_sum.astype(float) * 100
@@ -113,6 +113,7 @@ def plot_confusion_matrix(y_true, y_pred, title='Macierz Pomyłek'):
     plt.xlabel('Przewidywana klasa')
     plt.show()
 
+# Rysuje krzywą ROC 
 def plot_roc_curve(metrics, title='Krzywa ROC'):
     plt.figure(figsize=(8, 6))
     plt.plot(metrics['FPR'], metrics['TPR'], color='darkorange', lw=2, 
@@ -125,6 +126,7 @@ def plot_roc_curve(metrics, title='Krzywa ROC'):
     plt.grid(True, alpha=0.3)
     plt.show()
 
+# Rysuje funkcję kosztu dla Zadania 2
 def plot_task2_cost(thresholds, costs, opt_tau, opt_cost):
     plt.figure(figsize=(10, 6))
     plt.plot(thresholds, costs, label='Funkcja kosztu', color='purple')
@@ -136,8 +138,8 @@ def plot_task2_cost(thresholds, costs, opt_tau, opt_cost):
     plt.grid(True)
     plt.show()
 
+# Rysuje krzywą uczenia dla Zadania 3
 def plot_learning_curve_manual(train_sizes, train_scores, val_scores):
-    """Rysuje krzywą uczenia dla Zadania 3."""
     plt.figure(figsize=(10, 6))
     plt.plot(train_sizes, train_scores, 'o-', color="r", label="Training score")
     plt.plot(train_sizes, val_scores, 'o-', color="g", label="Validation score")

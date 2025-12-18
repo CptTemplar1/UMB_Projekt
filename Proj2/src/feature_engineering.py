@@ -2,8 +2,8 @@ import numpy as np
 import pandas as pd
 from sklearn.preprocessing import StandardScaler
 
+# Sprzątanie danych CICIDS 2017. Realizuje Algorytmy 5
 def clean_cicids_data(df):
-    """Realizuje Algorytm 5 (Czyszczenie)."""
     # 1. Usuwanie kolumn ID
     cols_to_remove = ['Flow ID', 'Source IP', 'Destination IP', 'Timestamp', 'Source Port', 'Socket']
     # Zachowujemy 'Destination Port' bo jest potrzebny do algorytmów
@@ -21,11 +21,9 @@ def clean_cicids_data(df):
     
     return df_clean
 
+# Inżynieria cech CICIDS 2017. Realizuje Algorytmy 6
+# Uproszczona inżynieria cech oparta na dostępnych kolumnach (bez ciężkiej agregacji czasowej) aby kod działał w rozsądnym czasie na standardowym komputerze.
 def engineer_features_cicids(df):
-    """Realizuje Algorytm 6 (Tworzenie 7 cech bazowych)."""
-    # Uproszczona inżynieria cech oparta na dostępnych kolumnach (bez ciężkiej agregacji czasowej)
-    # aby kod działał w rozsądnym czasie na standardowym komputerze.
-    
     features = pd.DataFrame(index=df.index)
     
     # Bezpośrednie mapowanie
@@ -54,14 +52,14 @@ def engineer_features_cicids(df):
     feature_names = ['packetspersec', 'avgpacketsize', 'portentropy', 'synratio', 
                      'uniquedstips', 'connectionduration', 'repeatedconnections']
                      
-    # Sprzątanie finalne (na wszelki wypadek)
+    # Sprzątanie finalne
     features.replace([np.inf, -np.inf], 0, inplace=True)
     features.fillna(0, inplace=True)
     
     return features[feature_names], y, df['Label'] # Zwracamy też oryginalne etykiety tekstowe
 
+# Normalizacja danych (StandardScaler) fit na train, transform na resztę
 def normalize_data(X_train, X_test, X_val=None):
-    """Normalizacja (StandardScaler) fit na train, transform na resztę."""
     scaler = StandardScaler()
     X_train_scaled = scaler.fit_transform(X_train)
     X_test_scaled = scaler.transform(X_test)

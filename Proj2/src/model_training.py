@@ -3,15 +3,15 @@ import pandas as pd
 from sklearn.linear_model import LogisticRegression
 from sklearn.metrics import confusion_matrix, accuracy_score, precision_score, recall_score, f1_score, roc_curve, auc
 
+# Trening modelu logistycznej regresji
 def train_model(X_train, y_train, class_weight=None, C=1.0, max_iter=1000):
-    """Trenuje model regresji logistycznej."""
     model = LogisticRegression(penalty='l2', C=C, class_weight=class_weight, 
                                solver='lbfgs', max_iter=max_iter, random_state=42)
     model.fit(X_train, y_train)
     return model
 
+# Znajduje optymalny próg decyzyjny (Zadanie 2)
 def optimize_threshold(model, X_test, y_test, wFN=100, wFP=1):
-    """Znajduje optymalny próg decyzyjny (Zadanie 2)."""
     probs = model.predict_proba(X_test)[:, 1]
     thresholds = np.arange(0.01, 1.00, 0.01)
     costs = []
@@ -31,8 +31,8 @@ def optimize_threshold(model, X_test, y_test, wFN=100, wFP=1):
             
     return best_tau, costs, thresholds
 
+# Oblicza metryki dla modelu
 def evaluate_model(model, X_test, y_test, threshold=0.5):
-    """Oblicza metryki dla modelu."""
     probs = model.predict_proba(X_test)[:, 1]
     y_pred = (probs >= threshold).astype(int)
     
@@ -53,8 +53,8 @@ def evaluate_model(model, X_test, y_test, threshold=0.5):
     
     return metrics, y_pred, probs
 
+# Analiza błędów FN/FP dla Zadania 3
 def analyze_errors_task3(X_test_raw, y_test, y_pred, y_prob, feature_names):
-    """Analiza FN/FP dla Zadania 3."""
     X_df = pd.DataFrame(X_test_raw, columns=feature_names)
     
     # Indeksy błędów
