@@ -848,6 +848,538 @@ def plot_learning_curve_manual(train_sizes, train_scores, val_scores):
 
 ### Zadanie 1: EKSPERYMENT Z DANYMI IDEALNYMI
 
+Celem pierwszego zadania było zbadanie działania modelu regresji logistycznej w warunkach laboratoryjnych, na syntetycznym zbiorze danych charakteryzującym się wyraźną separacją klas. Wygenerowano zbiór 1000 próbek (800 normalnych, 200 ataków) opisanych 7 cechami numerycznymi (m.in. pakiety/s, entropia portów), których wartości pochodziły ze znanych rozkładów statystycznych (Normalny, Poissona, Wykładniczy). Rozwiązanie polegało na podziale danych, ich normalizacji (Z-score) oraz wytrenowaniu klasyfikatora z regularyzacją L2. Eksperyment służył jako punkt odniesienia (baseline) do oceny skuteczności detekcji, interpretowalności współczynników $\beta$ oraz analizy krzywej ROC w idealnym środowisku.
+
+#### Wyniki
+
+# Wykorzystanie Środowiska Jupyter Notebook
+
+Do realizacji eksperymentów i uruchomienia przygotowanych modułów programu wykorzystano środowisko **Jupyter Notebook**. Jest to narzędzie umożliwiające tworzenie interaktywnych dokumentów, które łączą w sobie kod wykonywalny, wizualizacje oraz tekst opisowy.
+
+Zasada działania notebooków opiera się na architekturze klient-serwer, gdzie kod jest wykonywany przez **jądro (kernel)**, a wyniki są natychmiast prezentowane użytkownikowi. Kluczową funkcjonalnością tego środowiska jest podział kodu na **komórki (cells)**. Umożliwia to:
+* **Uruchamianie pojedynczych fragmentów kodu:** Użytkownik może wykonywać kod sekwencyjnie lub wybiórczo, co pozwala na szybkie testowanie poszczególnych funkcji bez konieczności przeładowywania całego programu.
+* **Zachowanie stanu:** Zmienne i obiekty utworzone w jednej komórce są przechowywane w pamięci i dostępne dla innych komórek w ramach tej samej sesji.
+* **Bezpośrednią wizualizację:** Wykresy i tabele (np. z bibliotek `matplotlib` czy `pandas`) są renderowane bezpośrednio pod kodem generującym.
+
+Zgodnie ze strukturą projektu, dla każdego z zadań utworzono dedykowany notebook:
+1.  `zadaniel_dane_idealne.ipynb`
+2.  `zadanie2_dane_realistyczne.ipynb`
+3.  `zadanie3_dane_rzeczywiste.ipynb`
+
+Takie podejście pozwoliło na zaimportowanie wspólnych funkcji z plików źródłowych (`src/`), a następnie uruchomienie ich z unikalnymi parametrami konfiguracyjnymi (takimi jak proporcje klas, typy rozkładów czy ścieżki do plików) wymaganymi specyficznie dla każdego z trzech eksperymentów.
+
+**Cell 1: Importy**
+```python
+import sys
+import os
+import pandas as pd
+import numpy as np
+from sklearn.model_selection import train_test_split
+
+# Dodanie katalogu src do ścieżki
+sys.path.append(os.path.abspath(os.path.join('..', 'src')))
+
+from data_generation import generate_ideal_data
+from feature_engineering import normalize_data
+from model_training import train_model, evaluate_model
+from visualization import plot_distributions, plot_betas, plot_confusion_matrix, plot_roc_curve, plot_correlation_matrix, plot_feature_impact
+```
+
+---
+
+**Cell 2: Generowanie danych**
+```python
+print("Generowanie danych idealnych...")
+df, feature_names = generate_ideal_data()
+X = df[feature_names].values
+y = df['Target'].values
+```
+
+**Odpowiedź**
+```text
+Generowanie danych idealnych...
+```
+
+---
+
+**Cell 3: Podział i Normalizacja**
+```python
+X_train_raw, X_test_raw, y_train, y_test = train_test_split(X, y, test_size=0.3, stratify=y, random_state=42)
+X_train, X_test, scaler = normalize_data(X_train_raw, X_test_raw)
+```
+
+---
+
+**Cell 4: Wizualizacja Danych**
+```python
+plot_distributions(df, feature_names, title_prefix='[Zad 1]')
+plot_correlation_matrix(df, feature_names)
+```
+
+**Odpowiedź**
+
+![](results/1.1.png)
+![](results/1.2.png)
+
+
+---
+
+**Cell 5: Trening Modelu**
+```python
+print("Trenowanie modelu...")
+model = train_model(X_train, y_train, C=1.0)
+```
+
+**Odpowiedź**
+```text
+Trenowanie modelu...
+```
+
+---
+
+**Cell 6: Ewaluacja**
+```python
+metrics, y_pred, y_prob = evaluate_model(model, X_test, y_test)
+print(f"Accuracy: {metrics['Accuracy']:.4f}")
+print(f"F1 Score: {metrics['F1']:.4f}")
+print(f"AUC:      {metrics['AUC']:.4f}")
+```
+
+**Odpowiedź**
+```text
+Accuracy: 1.0000
+F1 Score: 1.0000
+AUC:      1.0000
+```
+
+---
+
+**Cell 7: Wizualizacja Wyników**
+```python
+plot_confusion_matrix(y_test, y_pred)
+plot_roc_curve(metrics)
+plot_betas(model, feature_names)
+
+# Analiza wpływu cech dla 3 losowych próbek ze zbioru testowego
+import numpy as np
+indices = np.random.choice(len(X_test), 3, replace=False)
+for idx in indices:
+    prob = y_prob[idx]
+    plot_feature_impact(model, X_test, feature_names, sample_idx=idx, prediction_prob=prob)
+```
+
+**Odpowiedź**
+
+![](results/1.3.png)
+![](results/1.4.png)
+![](results/1.5.png)
+![](results/1.6.png)
+![](results/1.7.png)
+![](results/1.8.png)
+
+
 ### Zadanie 2: EKSPERYMENT Z DANYMI REALISTYCZNYMI
 
+Zadanie to symulowało rzeczywiste wyzwania w cyberbezpieczeństwie: silne niezbalansowanie klas (950 próbek normalnych vs 50 ataków) oraz zróżnicowany stopień trudności wykrycia zagrożeń. Ataki podzielono na oczywiste (przesunięcie o $4\sigma$), średnie ($2\sigma$) i subtelne ($1\sigma$), co wymusiło zastosowanie zaawansowanych strategii uczenia. Rozwiązanie porównywało trzy podejścia: standardową regresję logistyczną, model z ważeniem klas (`class_weight='balanced'`) oraz model z optymalizacją progu decyzyjnego $\tau_{opt}$. Kluczowym elementem była minimalizacja funkcji kosztu $C(\tau) = 100 \cdot FN + 1 \cdot FP$, kładącej nacisk na redukcję liczby niewykrytych ataków (False Negatives).
+
+**Cell 1: Importy**
+```python
+import sys
+import os
+from sklearn.model_selection import train_test_split
+import matplotlib.pyplot as plt
+import numpy as np
+
+sys.path.append(os.path.abspath(os.path.join('..', 'src')))
+from data_generation import generate_realistic_data
+from feature_engineering import normalize_data
+from model_training import train_model, evaluate_model, optimize_threshold
+from visualization import (plot_distributions, plot_confusion_matrix, plot_roc_curve, plot_task2_cost, plot_correlation_matrix, plot_betas, plot_feature_impact)
+```
+
+---
+
+**Cell 2: Generowanie danych**
+```python
+print("Generowanie danych realistycznych (niezbalansowanych)...")
+df, feature_names = generate_realistic_data()
+X = df[feature_names].values
+y = df['Target'].values
+```
+
+**Odpowiedź**
+```text
+Generowanie danych realistycznych (niezbalansowanych)...
+```
+
+---
+
+**Cell 3: Podział i Normalizacja**
+```python
+X_train_raw, X_test_raw, y_train, y_test = train_test_split(X, y, test_size=0.3, stratify=y, random_state=42)
+X_train, X_test, scaler = normalize_data(X_train_raw, X_test_raw)
+```
+
+---
+
+**Cell 4: Wizualizacja Danych**
+```python
+plot_distributions(df, feature_names, title_prefix='[Zad 2]')
+plot_correlation_matrix(df, feature_names)
+```
+
+**Odpowiedź**
+
+![](results/2.1.png)
+![](results/2.2.png)
+
+
+---
+
+**Cell 5: Eksperyment - 3 Modele**
+```python
+# 1. Standard
+print("Model Standard...")
+model_std = train_model(X_train, y_train)
+met_std, pred_std, prob_std = evaluate_model(model_std, X_test, y_test)
+
+# 2. Balanced
+print("Model Balanced...")
+model_bal = train_model(X_train, y_train, class_weight='balanced')
+met_bal, pred_bal, prob_bal = evaluate_model(model_bal, X_test, y_test)
+
+# 3. Optimized Threshold (na modelu Standard)
+print("Optymalizacja progu...")
+tau_opt, costs, thresholds = optimize_threshold(model_std, X_test, y_test)
+met_opt, pred_opt, _ = evaluate_model(model_std, X_test, y_test, threshold=tau_opt)
+```
+
+**Odpowiedź**
+```text
+Model Standard...
+Model Balanced...
+Optymalizacja progu...
+```
+
+---
+
+**Cell 6: Wyniki**
+```python
+print(f"Standard FN: {met_std['FN']}")
+print(f"Balanced FN: {met_bal['FN']}")
+print(f"Optimized FN: {met_opt['FN']} (Tau={tau_opt:.2f})")
+```
+
+**Odpowiedź**
+```text
+Standard FN: 1
+Balanced FN: 0
+Optimized FN: 0 (Tau=0.12)
+```
+
+---
+
+**Cell 7: Wizualizacja**
+```python
+# 1. Macierze pomyłek
+plot_confusion_matrix(y_test, pred_std, title='Standard Model')
+plot_confusion_matrix(y_test, pred_bal, title='Balanced Model')
+plot_confusion_matrix(y_test, pred_opt, title=f'Optimized Threshold (Tau={tau_opt:.2f})')
+
+# 2. Koszt
+plot_task2_cost(thresholds, costs, tau_opt, min(costs))
+
+# 3. Krzywe ROC (Porównanie Standard vs Balanced na jednym wykresie)
+plt.figure(figsize=(8, 6))
+plt.plot(met_std['FPR'], met_std['TPR'], label=f"Standard (AUC={met_std['AUC']:.3f})")
+plt.plot(met_bal['FPR'], met_bal['TPR'], label=f"Balanced (AUC={met_bal['AUC']:.3f})", color='green')
+plt.plot([0, 1], [0, 1], 'k--')
+plt.title("ROC Curve Comparison")
+plt.xlabel("False Positive Rate")
+plt.ylabel("True Positive Rate")
+plt.legend()
+plt.show()
+
+# 4. Porównanie Betas (Współczynników)
+# Rysujemy obok siebie, aby zobaczyć różnicę w wagach
+fig, ax = plt.subplots(1, 2, figsize=(16, 6))
+beta_std = model_std.coef_[0]
+beta_bal = model_bal.coef_[0]
+idx = np.arange(len(feature_names))
+
+ax[0].barh(feature_names, beta_std, color='blue')
+ax[0].set_title("Betas: Standard Model")
+ax[1].barh(feature_names, beta_bal, color='green')
+ax[1].set_title("Betas: Balanced Model")
+plt.tight_layout()
+plt.show()
+
+# 5. Analiza wpływu cech dla konkretnych typów ataków (Lokalna interpretowalność)
+# Szukamy po jednej próbce z każdego rodzaju ataku w zbiorze testowym
+print("\n--- Analiza wpływu cech dla różnych typów ataków (Balanced Model) ---")
+# Musimy odzyskać typy ataków dla zbioru testowego 
+
+# Wybieramy losowe próbki sklasyfikowane jako atak przez model Balanced
+attack_indices = np.where(pred_bal == 1)[0]
+if len(attack_indices) > 0:
+    chosen_idx = attack_indices[0] # Pierwszy z brzegu wykryty atak
+    prob = prob_bal[chosen_idx]
+    print(f"Przykładowy wykryty atak (Index testowy: {chosen_idx})")
+    plot_feature_impact(model_bal, X_test, feature_names, sample_idx=chosen_idx, prediction_prob=prob)
+```
+
+**Odpowiedź**
+
+![](results/2.3.png)
+![](results/2.4.png)
+![](results/2.5.png)
+![](results/2.6.png)
+![](results/2.7.png)
+![](results/2.8.png)
+
+```text
+--- Analiza wpływu cech dla różnych typów ataków (Balanced Model) ---
+Przykładowy wykryty atak (Index testowy: 10)
+```
+
+![](results/2.9.png)
+
+---
+
+**Cell 8: Wykres liniowy pokazujący jak Precision(τ), Recall(τ) i F1(τ) zmieniają się w funkcji progu**
+```python
+# Nie ma tego w src, więc robimy to tutaj bezpośrednio
+from sklearn.metrics import precision_recall_curve
+
+precisions, recalls, thresholds_pr = precision_recall_curve(y_test, prob_std)
+# F1 dla każdego progu
+f1_scores = 2 * (precisions * recalls) / (precisions + recalls + 1e-10)
+
+plt.figure(figsize=(10, 6))
+plt.plot(thresholds_pr, precisions[:-1], "b--", label="Precision")
+plt.plot(thresholds_pr, recalls[:-1], "g-", label="Recall")
+plt.plot(thresholds_pr, f1_scores[:-1], "r-", label="F1 Score")
+plt.xlabel("Próg decyzyjny (Threshold)")
+plt.ylabel("Wartość")
+plt.title("Metryki vs Próg (Model Standard)")
+plt.legend(loc="best")
+plt.grid(True)
+plt.show()
+```
+
+**Odpowiedź**
+
+![](results/2.10.png)
+
 ### Zadanie 3: EKSPERYMENT Z DANYMI RZECZYWISTYMI (CICIDS2017)
+
+Trzecie zadanie przeniosło problem detekcji na grunt danych rzeczywistych, wykorzystując zbiory CICIDS2017 lub UNSW-NB15. Głównym wyzwaniem była inżynieria cech (feature engineering) – konieczność przekształcenia surowych logów sieciowych w 7 cech bazowych zdefiniowanych w poprzednich zadaniach (np. obliczenie entropii portów czy stosunku SYN w oknach czasowych). Procedura wymagała zaawansowanego czyszczenia danych (usuwanie kolumn o zerowej wariancji, obsługa braków). Ostatecznie wytrenowano model na zbalansowanych wagach i porównano jego wyniki (Accuracy, Recall) z rezultatami uzyskanymi na danych syntetycznych, analizując przyczyny spadku skuteczności w realnym środowisku.
+
+**Cell 1: Importy**
+```python
+import sys
+import os
+import pandas as pd
+import matplotlib.pyplot as plt
+from sklearn.model_selection import train_test_split
+
+sys.path.append(os.path.abspath(os.path.join('..', 'src')))
+from data_generation import load_cicids_data
+from feature_engineering import clean_cicids_data, engineer_features_cicids, normalize_data
+from model_training import train_model, evaluate_model, analyze_errors_task3
+from visualization import plot_distributions, plot_confusion_matrix, plot_roc_curve, plot_betas, plot_correlation_matrix, plot_learning_curve_manual
+```
+
+---
+
+**Cell 2: Konfiguracja ścieżki**
+```python
+DATA_DIR = os.path.join('..', 'data', 'CICIDS2017')
+```
+
+---
+
+**Cell 3: Wczytywanie danych**
+```python
+try:
+    print("Wczytywanie surowych danych CICIDS2017...")
+    df_raw = load_cicids_data(DATA_DIR, sample_size=50000)
+    print(f"Wczytano {len(df_raw)} wierszy.")
+except FileNotFoundError as e:
+    print(e)
+    print("Upewnij się, że pliki CSV znajdują się w folderze data/CICIDS2017/")
+```
+
+**Odpowiedź**
+```text
+Wczytywanie surowych danych CICIDS2017...
+Wczytywanie: Monday-WorkingHours.pcap_ISCX.csv
+Wczytywanie: Friday-WorkingHours-Afternoon-DDoS.pcap_ISCX.csv
+Wczytywanie: Friday-WorkingHours-Afternoon-PortScan.pcap_ISCX.csv
+Wczytano 150000 wierszy.
+```
+
+---
+
+**Cell 4: Przetwarzanie i Inżynieria Cech**
+```python
+print("Czyszczenie danych...")
+df_clean = clean_cicids_data(df_raw)
+print("Tworzenie cech...")
+X_df, y, labels_raw = engineer_features_cicids(df_clean)
+feature_names = X_df.columns.tolist()
+
+# 1. Przygotowanie ramki do wizualizacji (łączenie cech z etykietą)
+df_vis = X_df.copy()
+df_vis['Target'] = y.values  # Dodajemy kolumnę Target, bo plot_distributions jej wymaga
+
+# 2. Wyświetlenie rozkładów gęstości dla każdej cechy
+print("Generowanie rozkładów gęstości...")
+plot_distributions(df_vis, feature_names, title_prefix='[CICIDS2017]')
+
+# 3. Wyświetlenie macierzy korelacji między cechami
+print("Generowanie macierzy korelacji...")
+plot_correlation_matrix(df_vis, feature_names)
+```
+
+**Odpowiedź**
+```text
+Czyszczenie danych...
+Tworzenie cech...
+Generowanie rozkładów gęstości...
+```
+
+[]![](results/3.1.png)
+[]![](results/3.2.png)
+
+---
+
+**Cell 5: Podział na Train/Val/Test (60/20/20)**
+```python
+X_train_val, X_test_raw, y_train_val, y_test = train_test_split(X_df.values, y.values, test_size=0.2, stratify=y, random_state=42)
+X_train_raw, X_val_raw, y_train, y_val = train_test_split(X_train_val, y_train_val, test_size=0.25, stratify=y_train_val, random_state=42)
+```
+
+---
+
+**Cell 6: Normalizacja**
+```python
+X_train, X_test, X_val, scaler = normalize_data(X_train_raw, X_test_raw, X_val_raw)
+```
+
+---
+
+**Cell 7: Trenowanie (Balanced)**
+```python
+print("Trenowanie modelu (Balanced)...")
+model = train_model(X_train, y_train, class_weight='balanced')
+```
+
+**Odpowiedź**
+```text
+Trenowanie modelu (Balanced)...
+```
+
+---
+
+**Cell 8: Ewaluacja**
+```python
+metrics, y_pred, y_prob = evaluate_model(model, X_test, y_test)
+print(f"Accuracy:  {metrics['Accuracy']:.4f}")
+print(f"Recall:    {metrics['Recall']:.4f}")
+print(f"AUC:       {metrics['AUC']:.4f}")
+```
+
+**Odpowiedź**
+```text
+Accuracy:  0.8534
+Recall:    0.9840
+AUC:       0.8918
+```
+
+---
+
+**Cell 9: Wizualizacja**
+```python
+plot_confusion_matrix(y_test, y_pred)
+plot_roc_curve(metrics)
+plot_betas(model, feature_names)
+```
+
+**Odpowiedź**
+
+![](results/3.3.png)
+![](results/3.4.png)
+![](results/3.5.png)
+
+---
+
+**Cell 9b: Generowanie i rysowanie krzywej uczenia**
+```python
+from sklearn.linear_model import LogisticRegression
+from sklearn.metrics import accuracy_score
+
+train_sizes_pct = [0.1, 0.25, 0.5, 0.75, 1.0]
+train_scores = []
+val_scores = []
+train_sizes_abs = []
+
+print("Generowanie krzywej uczenia...")
+for pct in train_sizes_pct:
+    # Bierzemy podzbiór danych treningowych
+    n_samples = int(pct * len(X_train))
+    train_sizes_abs.append(n_samples)
+    
+    X_sub = X_train[:n_samples]
+    y_sub = y_train[:n_samples]
+    
+    # Trenujemy tymczasowy model
+    model_temp = LogisticRegression(class_weight='balanced', max_iter=1000, random_state=42)
+    model_temp.fit(X_sub, y_sub)
+    
+    # Zapisujemy wyniki
+    train_scores.append(accuracy_score(y_sub, model_temp.predict(X_sub)))
+    val_scores.append(accuracy_score(y_val, model_temp.predict(X_val)))
+
+plot_learning_curve_manual(train_sizes_abs, train_scores, val_scores)
+```
+
+**Odpowiedź**
+```text
+Generowanie krzywej uczenia...
+```
+
+![](results/3.6.png)
+
+---
+
+**Cell 10: Analiza Błędów**
+```python
+fn_samples, fp_samples, _, _ = analyze_errors_task3(X_test_raw, y_test, y_pred, y_prob, feature_names)
+
+print("\nPrzykładowe False Negatives (Atak uznany za normę):")
+display(fn_samples.head())
+
+print("\nPrzykładowe False Positives (Norma uznana za atak):")
+display(fp_samples.head())
+```
+
+**Odpowiedź**
+
+**Przykładowe False Negatives (Atak uznany za normę)**
+|     | packetspersec | avgpacketsize | portentropy | synratio | uniquedstips | connectionduration | repeatedconnections |
+| --- | ------------- | ------------- | ----------- | -------- | ------------ | ------------------ | ------------------- |
+| 68  | 250000.000000 | 3.000000      | 20.0        | 0.0      | 6.0          | 0.000008           | 0.0                 |
+| 345 | 200000.000000 | 5.000000      | 20.0        | 0.0      | 6.0          | 0.000010           | 0.0                 |
+| 366 | 19.655075     | 1290.333333   | 200.0       | 0.0      | 11595.0      | 0.457897           | 456311.0            |
+| 475 | 250000.000000 | 5.000000      | 20.0        | 0.0      | 6.0          | 0.000008           | 0.0                 |
+| 584 | 333333.333300 | 3.000000      | 20.0        | 0.0      | 6.0          | 0.000006           | 0.0                 |
+
+**Przykładowe False Positives (Norma uznana za atak)**
+|     | packetspersec | avgpacketsize | portentropy | synratio | uniquedstips | connectionduration | repeatedconnections |
+| --- | ------------- | ------------- | ----------- | -------- | ------------ | ------------------ | ------------------- |
+| 0   | 86956.521739  | 9.0           | 20.0        | 0.0      | 6.0          | 0.000023           | 0.0                 |
+| 2   | 18691.588790  | 9.0           | 20.0        | 0.0      | 6.0          | 0.000107           | 0.0                 |
+| 8   | 42553.191489  | 9.0           | 20.0        | 0.0      | 6.0          | 0.000047           | 0.0                 |
+| 19  | 26315.789474  | 9.0           | 20.0        | 0.0      | 6.0          | 0.000076           | 0.0                 |
+| 24  | 666666.666667 | 9.0           | 0.0         | 0.0      | 0.0          | 0.000003           | 3.0                 |
