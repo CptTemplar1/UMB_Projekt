@@ -1616,3 +1616,37 @@ Analiza konkretnych wierszy, gdzie model się pomylił.
         * **False Negatives (Ataki uznane za normę):** Mają `packetspersec` ok. 200-300k, `avgpacketsize` bardzo małe (3-5 bajtów), `synratio` = 0.
         * **False Positives (Norma uznana za atak):** Mają `packetspersec` ok. 40-80k (też sporo), `avgpacketsize` małe (9 bajtów), `synratio` = 0.
     * **Przyczyna pomyłek:** Zarówno pewne ataki, jak i pewne fragmenty ruchu normalnego w tym zbiorze wyglądają niemal identycznie z perspektywy tych 7 cech: są to serie bardzo małych, szybkich pakietów bez flagi SYN. Model nie jest w stanie ich rozróżnić liniową granicą, co skutkuje błędami. Regresja logistyczna okazuje się tutaj ograniczeniem – potrzebny byłby model nieliniowy (np. Las Losowy), aby wyłapać subtelniejsze różnice.
+
+### Podsumowanie i wnioski
+
+Projekt pozwolił na kompleksowe zbadanie procesu tworzenia systemu detekcji intruzów (IDS) opartego na uczeniu maszynowym, przechodząc od teoretycznych symulacji do pracy z rzeczywistym ruchem sieciowym. Przeprowadzone eksperymenty wykazały fundamentalne różnice między modelowaniem idealnym a rzeczywistością cyberbezpieczeństwa, szczególnie w kontekście niezbalansowania klas i szumu w danych.
+
+#### 1. Ewolucja Trudności i Skuteczności Modelu
+Analiza porównawcza trzech eksperymentów ukazuje wyraźną degradację wyników standardowych metryk wraz ze wzrostem realizmu danych, przy jednoczesnym zachowaniu wysokiej zdolności detekcji zagrożeń.
+
+* **Zadanie 1 (Dane Idealne):** W warunkach pełnej separowalności klas (AUC = 1.00), model regresji logistycznej działał bezbłędnie. Potwierdziło to poprawność implementacji potoku przetwarzania, ale również wykazało, że przy dobrze dobranych cechach (takich jak `synratio` czy `packetspersec`) nawet prosty model liniowy jest wystarczający.
+* **Zadanie 2 (Dane Realistyczne):** Wprowadzenie niezbalansowania (95:5) i zróżnicowania ataków ujawniło słabość standardowego podejścia (błąd FN=1). Zastosowanie ważenia klas (`class_weight='balanced'`) oraz optymalizacja progu decyzyjnego ($\tau_{opt}=0.12$) pozwoliły na całkowite wyeliminowanie błędów FN. Wniosek płynący z tego etapu jest kluczowy dla systemów bezpieczeństwa: **maksymalizacja Accuracy jest celem drugorzędnym; priorytetem jest minimalizacja kosztu przeoczenia ataku (Recall).**
+* **Zadanie 3 (Dane Rzeczywiste - CICIDS2017):** Przejście na dane rzeczywiste spowodowało spadek AUC do poziomu ~0.89. Mimo to, model osiągnął bardzo wysoki **Recall (98.4%)**, co oznacza, że spełnił swoje główne zadanie – wykrył niemal wszystkie zagrożenia. Ceną za to była jednak duża liczba fałszywych alarmów (FP > 20%), co wskazuje na ograniczenia modelu liniowego w odróżnianiu subtelnych anomalii od specyficznego ruchu normalnego.
+
+#### 2. Analiza Cech i Ich Znaczenia (Feature Importance)
+Projekt uwypuklił, jak zmienia się rola poszczególnych cech w zależności od kontekstu danych:
+
+* **Dramatyczna zmiana wag:** W danych syntetycznych cecha `synratio` była silnym indykatorem ataku (dodatnia waga). W danych rzeczywistych jej waga stała się ujemna ($\beta \approx -2.75$), co sugeruje, że w zbiorze CICIDS2017 specyficzne ataki (DDoS/PortScan) nie opierały się na prostym zalewaniu flagami SYN, lub ruch normalny w tym zbiorze charakteryzował się wysokim wskaźnikiem SYN.
+* **Dominacja Entropii i Unikalnych IP:** W zadaniu 3 najważniejszymi cechami okazały się `portentropy` (ujemna waga o ogromnej magnitudzie) oraz `uniquedstips`. Wskazuje to, że w rzeczywistych atakach DDoS/skanowania, automatyzacja ataku pozostawia wyraźny ślad w determinizmie używanych portów (niska entropia) i rozrzucie adresów IP, co jest silniejszym sygnałem niż wolumetria pakietów.
+* **Nieliniowość zależności:** Macierze korelacji wykazały, że w danych rzeczywistych zależności między cechami są znacznie słabsze i mniej liniowe niż w symulacjach. To sugeruje, że założenie o liniowej separowalności klas, na którym opiera się regresja logistyczna, jest w rzeczywistości tylko przybliżeniem.
+
+#### 3. Skuteczność Strategii Mitygacji Niezbalansowania
+Eksperyment w Zadaniu 2 jednoznacznie potwierdził konieczność stosowania technik obsługi danych niezbalansowanych:
+
+* **Funkcja Kosztu:** Zdefiniowanie asymetrycznej funkcji kosztu ($100 \cdot FN + 1 \cdot FP$) pozwoliło na matematyczne uzasadnienie wyboru niskiego progu decyzyjnego. Wykazano, że "bezpieczna strefa" progu znajduje się w przedziale 0.10–0.20, gdzie Recall wynosi 100%, a Precision jest wciąż akceptowalne.
+* **Wpływ na Współczynniki:** Model zbalansowany (`balanced`) generował współczynniki $\beta$ o znacznie większych wartościach bezwzględnych niż model standardowy. Jest to dowód na to, że algorytm "rozpycha" granice decyzyjne, aby agresywniej klasyfikować mniejszościową klasę ataku.
+
+#### 4. Ograniczenia Modelu i Wnioski Końcowe
+Analiza błędów (False Positives) w Zadaniu 3 ujawniła główne ograniczenie przyjętego rozwiązania:
+
+* **Problem "Szybkich Małych Pakietów":** Model miał trudności z odróżnieniem ataków wolumetrycznych od normalnego ruchu składającego się z małych, szybkich pakietów (np. intensywna wymiana komunikatów kontrolnych). Oba typy ruchu miały podobne charakterystyki w 7-wymiarowej przestrzeni cech liniowych.
+* **Wnioski dla systemów produkcyjnych:**
+    1.  **Regresja Logistyczna jako Baseline:** Model ten jest świetnym punktem wyjścia ze względu na szybkość i interpretowalność (wiemy dokładnie, dlaczego podjął decyzję), ale generuje zbyt wiele fałszywych alarmów (High False Positive Rate) dla złożonego ruchu rzeczywistego.
+    2.  **Kierunek Rozwoju:** Aby zredukować liczbę FP przy zachowaniu wysokiego Recall, należałoby w przyszłości zastosować modele nieliniowe (np. Las Losowy, Gradient Boosting) lub wprowadzić bardziej zaawansowane cechy oparte na analizie sekwencyjnej (np. z użyciem sieci LSTM), które potrafiłyby wyłapać kontekst czasowy połączeń, a nie tylko ich statystyki.
+
+Podsumowując, projekt zakończył się sukcesem, dostarczając działający prototyp systemu detekcji, który w warunkach rzeczywistych wykrywa ponad 98% zagrożeń. Zidentyfikowane wyzwania (wysoki współczynnik fałszywych alarmów) stanowią naturalny punkt wyjścia do dalszych prac optymalizacyjnych z użyciem bardziej złożonych algorytmów.
