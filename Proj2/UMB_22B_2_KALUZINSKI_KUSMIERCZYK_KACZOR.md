@@ -846,13 +846,9 @@ def plot_learning_curve_manual(train_sizes, train_scores, val_scores):
     plt.show()
 ```
 
-### Zadanie 1: EKSPERYMENT Z DANYMI IDEALNYMI
+### Wyniki
 
-Celem pierwszego zadania było zbadanie działania modelu regresji logistycznej w warunkach laboratoryjnych, na syntetycznym zbiorze danych charakteryzującym się wyraźną separacją klas. Wygenerowano zbiór 1000 próbek (800 normalnych, 200 ataków) opisanych 7 cechami numerycznymi (m.in. pakiety/s, entropia portów), których wartości pochodziły ze znanych rozkładów statystycznych (Normalny, Poissona, Wykładniczy). Rozwiązanie polegało na podziale danych, ich normalizacji (Z-score) oraz wytrenowaniu klasyfikatora z regularyzacją L2. Eksperyment służył jako punkt odniesienia (baseline) do oceny skuteczności detekcji, interpretowalności współczynników $\beta$ oraz analizy krzywej ROC w idealnym środowisku.
-
-#### Wyniki
-
-# Wykorzystanie Środowiska Jupyter Notebook
+**Wykorzystanie Środowiska Jupyter Notebook**
 
 Do realizacji eksperymentów i uruchomienia przygotowanych modułów programu wykorzystano środowisko **Jupyter Notebook**. Jest to narzędzie umożliwiające tworzenie interaktywnych dokumentów, które łączą w sobie kod wykonywalny, wizualizacje oraz tekst opisowy.
 
@@ -867,6 +863,10 @@ Zgodnie ze strukturą projektu, dla każdego z zadań utworzono dedykowany noteb
 3.  `zadanie3_dane_rzeczywiste.ipynb`
 
 Takie podejście pozwoliło na zaimportowanie wspólnych funkcji z plików źródłowych (`src/`), a następnie uruchomienie ich z unikalnymi parametrami konfiguracyjnymi (takimi jak proporcje klas, typy rozkładów czy ścieżki do plików) wymaganymi specyficznie dla każdego z trzech eksperymentów.
+
+#### Zadanie 1: EKSPERYMENT Z DANYMI IDEALNYMI
+
+Celem pierwszego zadania było zbadanie działania modelu regresji logistycznej w warunkach laboratoryjnych, na syntetycznym zbiorze danych charakteryzującym się wyraźną separacją klas. Wygenerowano zbiór 1000 próbek (800 normalnych, 200 ataków) opisanych 7 cechami numerycznymi (m.in. pakiety/s, entropia portów), których wartości pochodziły ze znanych rozkładów statystycznych (Normalny, Poissona, Wykładniczy). Rozwiązanie polegało na podziale danych, ich normalizacji (Z-score) oraz wytrenowaniu klasyfikatora z regularyzacją L2. Eksperyment służył jako punkt odniesienia (baseline) do oceny skuteczności detekcji, interpretowalności współczynników $\beta$ oraz analizy krzywej ROC w idealnym środowisku.
 
 **Cell 1: Importy**
 ```python
@@ -919,8 +919,27 @@ plot_correlation_matrix(df, feature_names)
 **Odpowiedź**
 
 ![](results/1.1.png)
+
+**Analiza Rozkładów Gęstości**
+
+Wygenerowano 7 wykresów gęstości (KDE), po jednym dla każdej cechy, przedstawiających różnice między ruchem normalnym (kolor niebieski) a atakiem (kolor czerwony).
+
+* **Wnioski:**
+    * **Idealna separacja:** Dla cech `synratio`, `packetspersec`, `portentropy`, `uniquedstips` oraz `repeatedconnections` widoczna jest całkowita rozłączność krzywych. Oznacza to, że wartości dla ataku i ruchu normalnego nie nakładają się na siebie. Jest to sytuacja idealna dla klasyfikatora liniowego (jak regresja logistyczna), który może bezbłędnie oddzielić te klasy prostą granicą decyzyjną.
+    * **Charakterystyka ataku:** Wykresy potwierdzają założenia generowania danych: ataki mają wyższą liczbę pakietów na sekundę (~250 vs ~50), wyższą entropię portów oraz znacznie wyższy współczynnik SYN (~0.8 vs ~0.2).
+    * **Inwersja zależności:** Dla cechy `avgpacketsize` (średni rozmiar pakietu) rozkład ataku jest przesunięty w lewo (mniejsze pakiety, ~300 bajtów) względem ruchu normalnego (~800 bajtów). Będzie to miało odzwierciedlenie w ujemnym współczynniku $\beta$ modelu.
+    * **Lekka nakładka:** Jedynie przy cechy `connectionduration` (czas trwania) widać nakładanie się "ogonów" rozkładów przy wartościach bliskich zeru, co wynika z natury rozkładu wykładniczego. Jednakże, dzięki silnej separacji pozostałych 6 cech, nie wpływa to negatywnie na klasyfikację.
+
 ![](results/1.2.png)
 
+**Analiza Macierzy Korelacji Pearsona**
+
+Heatmapa przedstawia współczynniki korelacji liniowej $\rho$ pomiędzy poszczególnymi cechami.
+
+* **Wnioski:**
+    * **Silne korelacje wewnątrz grup:** Widoczny jest wyraźny czerwony blok (wartości > 0.90) łączący cechy charakterystyczne dla ataku: `synratio`, `uniquedstips`, `repeatedconnections` oraz `packetspersec`. Oznacza to, że gdy rośnie jedna z tych cech (np. liczba pakietów/s), rosną też pozostałe (np. liczba unikalnych IP docelowych). Jest to spójne z definicją ataku wolumetrycznego lub skanowania portów.
+    * **Korelacje ujemne:** Cechy "atakujące" są silnie ujemnie skorelowane z `avgpacketsize` (wartości ok. -0.74, kolor niebieski). Potwierdza to, że wzrost intensywności ataku wiąże się ze spadkiem średniego rozmiaru pakietu.
+    * **Znaczenie dla modelu:** Tak silna współliniowość (multicollinearity) między cechami nie przeszkadza w predykcji, ale sugeruje, że do osiągnięcia wysokiej skuteczności nie potrzebujemy wszystkich 7 cech – prawdopodobnie wystarczyłyby 2-3 z nich (np. `synratio` i `avgpacketsize`), aby bezbłędnie wykryć ten typ ataku.
 
 ---
 
@@ -952,6 +971,17 @@ F1 Score: 1.0000
 AUC:      1.0000
 ```
 
+**Analiza Metryk Ewaluacyjnych**
+
+Model został oceniony na zbiorze testowym stanowiącym 30% danych.
+
+* **Wyniki:**
+    * **Accuracy:** 1.0000 (100%)
+    * **F1 Score:** 1.0000
+    * **AUC:** 1.0000
+* **Wnioski:**
+    * Model osiągnął perfekcyjną skuteczność. Nie popełnił ani jednego błędu klasyfikacji. [cite_start]Jest to wynik oczekiwany dla danych "idealnych"[cite: 785], gdzie separacja między klasami jest tak wyraźna (jak pokazano na wykresach rozkładów). Potwierdza to poprawność implementacji algorytmów uczenia maszynowego.
+
 ---
 
 **Cell 7: Wizualizacja Wyników**
@@ -971,14 +1001,56 @@ for idx in indices:
 **Odpowiedź**
 
 ![](results/1.3.png)
+
+**Analiza Macierzy Pomyłek**
+
+Wizualizacja przedstawia dokładny rozkład decyzji modelu dla zbioru testowego (300 próbek).
+
+* **Wnioski:**
+    * **True Negatives (TN):** 240/240 próbek normalnych zostało poprawnie rozpoznanych jako normalne.
+    * **True Positives (TP):** 60/60 ataków zostało poprawnie wykrytych.
+    * **Błędy (FP/FN):** Wartości 0. Model nie wygenerował żadnych fałszywych alarmów (False Positive) ani nie przepuścił żadnego ataku (False Negative).
+    * [cite_start]Zgodność z danymi: Proporcja 240:60 w zbiorze testowym idealnie odpowiada pierwotnemu podziałowi danych 800:200 (4:1)[cite: 786], co potwierdza poprawność stratyfikacji (`stratify=y` w kodzie).
+
 ![](results/1.4.png)
+
+**Analiza Krzywej ROC**
+
+Wykres przedstawia zależność True Positive Rate od False Positive Rate.
+
+* **Wnioski:**
+    * Krzywa przyjmuje kształt idealny ("kąt prosty"), wznosząc się pionowo od punktu (0,0) do (0,1), a następnie biegnąc poziomo do (1,1).
+    * **AUC = 1.000:** Pole pod krzywą wynosi maksymalną możliwą wartość. Oznacza to, że model jest w stanie idealnie rozróżnić klasy dla każdego możliwego progu decyzyjnego. Histogramy prawdopodobieństw dla obu klas są całkowicie rozłączne.
+
 ![](results/1.5.png)
+
+**Analiza Współczynników Beta - Globalne Znaczenie Cech**
+
+Wykres słupkowy pokazuje wartości współczynników $\beta$ z wytrenowanego modelu regresji logistycznej, które informują o globalnym wpływie cech na decyzję.
+
+* **Wnioski:**
+    * **Najważniejsze cechy (Czerwone):** `synratio` (1.12), `uniquedstips` (1.07) i `packetspersec` (1.06) mają najwyższe dodatnie wagi. Oznacza to, że wzrost wartości tych cech najsilniej zwiększa prawdopodobieństwo zaklasyfikowania próbki jako ataku.
+    * **Cechy hamujące (Niebieskie):** `avgpacketsize` (-0.67) i `connectionduration` (-0.37) mają wagi ujemne. Oznacza to, że im większy pakiet i dłuższe połączenie, tym mniejsza szansa, że jest to atak (czyli większa szansa, że to ruch normalny). Jest to spójne z obserwacją z analizy rozkładów.
+    * **Hierarchia ważności:** `portentropy` (0.77), mimo że dobrze separuje klasy, jest mniej istotna dla modelu niż `synratio`. Sugeruje to, że `synratio` jest najbardziej dyskryminującą cechą w tym zestawie danych.
+
 ![](results/1.6.png)
 ![](results/1.7.png)
 ![](results/1.8.png)
 
+**Analiza Wpływu Cech - Lokalna Interpretowalność**
 
-### Zadanie 2: EKSPERYMENT Z DANYMI REALISTYCZNYMI
+Wybrano 3 losowe próbki ze zbioru testowego, aby pokazać, dlaczego model podjął konkretną decyzję (analiza wkładu $\beta_i \cdot x_i$).
+
+1.  **Próbka #127 (P(Atak) = 0.0001 - Klasa Normalna):**
+    * Wszystkie słupki są niebieskie (ujemne). Cechy takie jak `portentropy` czy `avgpacketsize` "ciągną" prawdopodobieństwo w dół, w stronę zera. Model jest bardzo pewny, że to ruch normalny.
+2.  **Próbka #209 (P(Atak) = 0.0011 - Klasa Normalna):**
+    * Dominują słupki niebieskie, zwłaszcza `repeatedconnections` i `packetpersec`.
+    * Widoczny jest mały czerwony słupek przy `connectionduration`. Oznacza to, że czas trwania tego konkretnego połączenia był krótki (co jest typowe dla ataku), ale pozostałe cechy (niska liczba powtórzeń, mała liczba pakietów) zdecydowanie przeważyły szalę na korzyść ruchu normalnego.
+3.  **Próbka #36 (P(Atak) = 0.9916 - Klasa Atak):**
+    * Wszystkie kluczowe cechy mają kolor czerwony (dodatni wpływ).
+    * Największy wkład ma `synratio` oraz `packetpersec`. Kombinacja wysokiego stosunku flag SYN oraz dużej liczby pakietów dała modelowi prawie 100% pewności, że ma do czynienia z atakiem.
+
+#### Zadanie 2: EKSPERYMENT Z DANYMI REALISTYCZNYMI
 
 Zadanie to symulowało rzeczywiste wyzwania w cyberbezpieczeństwie: silne niezbalansowanie klas (950 próbek normalnych vs 50 ataków) oraz zróżnicowany stopień trudności wykrycia zagrożeń. Ataki podzielono na oczywiste (przesunięcie o $4\sigma$), średnie ($2\sigma$) i subtelne ($1\sigma$), co wymusiło zastosowanie zaawansowanych strategii uczenia. Rozwiązanie porównywało trzy podejścia: standardową regresję logistyczną, model z ważeniem klas (`class_weight='balanced'`) oraz model z optymalizacją progu decyzyjnego $\tau_{opt}$. Kluczowym elementem była minimalizacja funkcji kosztu $C(\tau) = 100 \cdot FN + 1 \cdot FP$, kładącej nacisk na redukcję liczby niewykrytych ataków (False Negatives).
 
@@ -1031,8 +1103,26 @@ plot_correlation_matrix(df, feature_names)
 **Odpowiedź**
 
 ![](results/2.1.png)
+
+**Analiza Rozkładów Gęstości**
+
+Wykresy przedstawiają nakładanie się cech ruchu normalnego (niebieski) i ataków (czerwony).
+
+* **Wnioski:**
+    * **Zanikanie separacji:** W przeciwieństwie do Zadania 1, tutaj **brak idealnej separacji**. Dla większości cech (`packetspersec`, `avgpacketsize`, `portentropy`, `synratio`) widoczne są wyraźne części wspólne ("nakładki") obu rozkładów. Oznacza to, że istnieją ataki (zapewne te "subtelne"), których wartości cech są bardzo zbliżone do ruchu normalnego.
+    * **Trudność klasyfikacji:** Nakładanie się wykresów sugeruje, że prosty klasyfikator liniowy z domyślnym progiem może mieć problem z jednoznacznym oddzieleniem klas, co grozi błędy typu FN (nie wykrycie ataku) lub FP (fałszywy alarm).
+    * **Charakterystyka:** Mimo nakładania się, średnie wartości dla ataków są przesunięte (np. wyższe `repeatedconnections`, niższe `avgpacketsize`), co nadal pozwala na statystyczne rozróżnienie, choć z mniejszą pewnością.
+
 ![](results/2.2.png)
 
+**Analiza Macierzy Korelacji Pearsona**
+
+Heatmapa korelacji dla danych realistycznych.
+
+* **Wnioski:**
+    * **Słabsze korelacje:** Wartości współczynników są znacznie niższe niż w Zadaniu 1 (max ~0.80 vs ~0.96). Wynika to z faktu, że ataki są bardziej zróżnicowane (różne typy), przez co zależności między cechami nie są tak sztywne.
+    * **Kluczowa para:** Najsilniejsza korelacja występuje między `uniquedstips` a `repeatedconnections` (0.80). Sugeruje to, że ataki w tym zbiorze często polegają na wielokrotnym łączeniu się z różnymi celami (charakterystyka skanowania lub DDoS).
+    * **Wpływ na model:** Mniejsza współliniowość oznacza, że każda cecha wnosi nieco więcej unikalnej informacji niż w przypadku danych idealnych.
 
 ---
 
@@ -1076,6 +1166,19 @@ Standard FN: 1
 Balanced FN: 0
 Optimized FN: 0 (Tau=0.12)
 ```
+
+**Wyniki Numeryczne - Porównanie Modeli**
+
+Porównanie liczby niewykrytych ataków (False Negatives - FN) dla trzech strategii na zbiorze testowym (ok. 300 próbek, w tym 15 ataków).
+
+* **Wyniki:**
+    * **Standard FN:** 1
+    * **Balanced FN:** 0
+    * **Optimized FN:** 0 (przy progu $\tau=0.12$)
+* **Wnioski:**
+    * Model **Standardowy** (bez wag) przepuścił 1 atak. Jest to niedopuszczalne w systemach bezpieczeństwa krytycznego. Wynika to z faktu, że przy niezbalansowanych danych model "woli" klasę większościową.
+    * Model **Balanced** (z wagami klas) oraz Model z **Optymalizacją Progu** wykryły 100% ataków (FN=0).
+    * Dowodzi to, że w przypadku rzadkich zdarzeń (ataków) konieczne jest stosowanie technik mitygacji niezbalansowania. Obniżenie progu decyzyjnego do 0.12 pozwoliło wyłapać atak, który przy standardowym progu 0.50 zostałby uznany za ruch normalny.
 
 ---
 
@@ -1133,16 +1236,60 @@ if len(attack_indices) > 0:
 ![](results/2.3.png)
 ![](results/2.4.png)
 ![](results/2.5.png)
+
+**Analiza Macierzy Pomyłek**
+
+Wizualizacja skuteczności klasyfikacji dla trzech podejść.
+
+* **Wnioski:**
+    * **Standard Model:** Popełnił błąd typu FN (1 próbka). Skuteczność wykrywania ataków (Recall) wyniosła 93.3% (14/15).
+    * **Balanced Model:** Bezbłędny. Wykrył 15/15 ataków przy zachowaniu 0 fałszywych alarmów.
+    * **Optimized Threshold:** Również bezbłędny przy $\tau=0.12$. Przesunięcie granicy decyzyjnej "w dół" pozwoliło objąć klasyfikacją "Atak" również te trudniejsze przypadki, nie generując przy tym fałszywych alarmów (FP=0), co świadczy o tym, że ataki, choć trudne, były nadal separowalne od normalnego ruchu przy odpowiednim ustawieniu czułości.
+
 ![](results/2.6.png)
+
+**Analiza Funkcji Kosztu**
+
+Wykres przedstawia zależność całkowitego kosztu ($100 \cdot FN + 1 \cdot FP$) od progu decyzyjnego $\tau$.
+
+* **Wnioski:**
+    * **Asymetria kosztów:** Wykres ma charakterystyczny kształt litery "L" lub "U".
+    * Dla bardzo małych progów ($\tau \approx 0$) koszt jest niski, ale niezerowy (generujemy dużo tanich FP).
+    * Dla wysokich progów ($\tau > 0.2$) koszt gwałtownie rośnie, ponieważ zaczynamy pomijać ataki (drogie błędy FN).
+    * **Minimum:** Czerwona kropka wskazuje minimum przy $\tau=0.12$. Jest to punkt, w którym model jest wystarczająco czuły, by wykryć wszystkie ataki, ale jeszcze nie na tyle "przewrażliwiony", by generować fałszywe alarmy.
+
 ![](results/2.7.png)
+
+**Porównanie Krzywych ROC**
+
+Nałożone na siebie krzywe ROC dla modelu Standard i Balanced.
+
+* **Wnioski:**
+    * Obie krzywe osiągają **AUC = 1.000**.
+    * **Pozorny paradoks:** Mimo że model Standardowy popełnił błąd (FN=1) przy progu 0.5, jego AUC wynosi 1.0. Oznacza to, że ten pominięty atak miał prawdopodobieństwo np. 0.45. Choć domyślny próg go pominął, to w sensie rankingu (ROC) model nadal ocenił go wyżej niż jakikolwiek przykład ruchu normalnego.
+    * Wniosek praktyczny: AUC jest świetną miarą ogólnej zdolności modelu, ale nie gwarantuje sukcesu przy domyślnym progu. Dlatego optymalizacja progu (Analysis 5) jest kluczowa.
+
 ![](results/2.8.png)
 
-```text
---- Analiza wpływu cech dla różnych typów ataków (Balanced Model) ---
-Przykładowy wykryty atak (Index testowy: 10)
-```
+**Analiza Współczynników Beta**
+
+Porównanie wag przypisanych cechom przez model Standardowy i Balanced.
+
+* **Wnioski:**
+    * **Kierunek wpływu:** W obu modelach `avgpacketsize` ma silny ujemny wpływ (niebieski/zielony w lewo), a `repeatedconnections` i `uniquedstips` silny dodatni.
+    * **Wzrost magnitudy:** W modelu **Balanced** (zielony wykres) współczynniki mają generalnie większe wartości bezwzględne (np. `repeatedconnections` > 2.5) niż w modelu Standardowym (< 2.0).
+    * Mechanizm ten wynika z faktu, że model Balanced "mocniej" karze za błędy na klasie ataku, co wymusza na algorytmie bardziej zdecydowane rozsuwanie decyzji (większe bety), aby upewnić się, że ataki znajdą się po właściwej stronie granicy decyzyjnej.
 
 ![](results/2.9.png)
+
+**Analiza Wpływu Cech - Lokalna Interpretowalność**
+
+Analiza dla próbki #10, która została poprawnie sklasyfikowana jako atak z prawdopodobieństwem P=1.0000.
+
+* **Wnioski:**
+    * Decyzję zdominowały dwie cechy: `uniquedstips` oraz `repeatedconnections` (duże czerwone słupki).
+    * Cechy `packetspersec`, `avgpacketsize` i `portentropy` miały umiarkowany wpływ dodatni.
+    * Ciekawostka: `synratio` miało wpływ ujemny (niebieski słupek). Sugeruje to, że ten konkretny atak **nie był** atakiem typu SYN Flood, lecz prawdopodobnie skanowaniem portów lub atakiem wolumetrycznym innego typu, gdzie stosunek flag SYN był niski (typowy dla ruchu normalnego), ale pozostałe anomalie (liczba połączeń) były na tyle silne, że model i tak rozpoznał zagrożenie.
 
 ---
 
@@ -1171,7 +1318,17 @@ plt.show()
 
 ![](results/2.10.png)
 
-### Zadanie 3: EKSPERYMENT Z DANYMI RZECZYWISTYMI (CICIDS2017)
+**Metryki vs Próg Decyzyjny**
+
+Wykres pokazujący jak zmieniają się Precision, Recall i F1 w zależności od przyjętego progu.
+
+* **Wnioski:**
+    * **Recall (zielony):** Utrzymuje się na poziomie 1.0 (100%) dla szerokiego zakresu progów od 0.0 do ok. 0.2, po czym powoli zaczyna spadać.
+    * **Precision (niebieski):** Szybko rośnie do 1.0 już przy bardzo niskich progach.
+    * **F1 Score (czerwony):** Osiąga maksimum (płaski szczyt) w przedziale progów ok. 0.10 - 0.80.
+    * **Potwierdzenie optymalizacji:** Wykres potwierdza, że znaleziony wcześniej próg $\tau=0.12$ (Cell 6) leży w "bezpiecznej strefie", gdzie Recall wynosi 1.0, a Precision już zdążyło wzrosnąć do 1.0. Wybór progu z tego zakresu gwarantuje maksymalną skuteczność modelu.
+
+#### Zadanie 3: EKSPERYMENT Z DANYMI RZECZYWISTYMI (CICIDS2017)
 
 Trzecie zadanie przeniosło problem detekcji na grunt danych rzeczywistych, wykorzystując zbiory CICIDS2017 lub UNSW-NB15. Głównym wyzwaniem była inżynieria cech (feature engineering) – konieczność przekształcenia surowych logów sieciowych w 7 cech bazowych zdefiniowanych w poprzednich zadaniach (np. obliczenie entropii portów czy stosunku SYN w oknach czasowych). Procedura wymagała zaawansowanego czyszczenia danych (usuwanie kolumn o zerowej wariancji, obsługa braków). Ostatecznie wytrenowano model na zbalansowanych wagach i porównano jego wyniki (Accuracy, Recall) z rezultatami uzyskanymi na danych syntetycznych, analizując przyczyny spadku skuteczności w realnym środowisku.
 
@@ -1249,8 +1406,27 @@ Tworzenie cech...
 Generowanie rozkładów gęstości...
 ```
 
-[]![](results/3.1.png)
-[]![](results/3.2.png)
+![](results/3.1.png)
+
+**Analiza Rozkładów Gęstości**
+
+Wykresy te drastycznie różnią się od tych z Zadań 1 i 2.
+
+* **Wnioski:**
+    * **Ekstremalna asymetria (Skewness):** Rozkłady cech są bardzo "szpilkowe" (skupione wokół jednej wartości, zazwyczaj 0) z bardzo długimi ogonami. Oś X osiąga wartości rzędu $10^6$ czy $10^7$ (np. `packetspersec`, `portentropy`), co świadczy o występowaniu ogromnych wartości odstających (outliers).
+    * **Port Entropy:** Dla ataku (czerwona linia) widzimy gigantyczną szpilkę przy wartości bliskiej 0 (lub bardzo niskiej w porównaniu do skali). Sugeruje to, że ataki w tym zbiorze (DDoS/PortScan) mają bardzo specyficzną, deterministyczną strukturę portów, w przeciwieństwie do ruchu normalnego.
+    * **Brak wyraźnej wizualnej separacji:** W przeciwieństwie do danych idealnych, tutaj krzywe często się pokrywają w obszarze bliskim zeru. Na przykład `avgpacketsize` dla ataku i normy pokrywa się w zakresie małych pakietów (0-100 bajtów). To zapowiada trudności w odróżnieniu małych pakietów ataku od małych pakietów kontrolnych sieci (np. ACK/SYN).
+
+![](results/3.2.png)
+
+**Analiza Macierzy Korelacji Pearsona**
+
+Heatmapa dla danych rzeczywistych pokazuje zupełnie inną strukturę zależności.
+
+* **Wnioski:**
+    * **Załamanie korelacji:** W danych syntetycznych (Zad 1) widzieliśmy bloki korelacji rzędu 0.95. Tutaj najwyższa korelacja wynosi 0.78 (między `connectionduration` a `repeatedconnections`).
+    * **Brak liniowości:** Większość cech ma korelację bliską zeru (np. `portentropy` vs reszta). Oznacza to, że relacje między cechami w prawdziwym ruchu sieciowym są nieliniowe i znacznie bardziej złożone.
+    * **Synratio:** W danych syntetycznych `synratio` było silnie skorelowane z atakiem. Tutaj jego korelacja z innymi cechami ataku (np. `packetspersec`) wynosi tylko 0.39.
 
 ---
 
@@ -1297,6 +1473,19 @@ Recall:    0.9840
 AUC:       0.8918
 ```
 
+**Analiza Metryk Ewaluacyjnych**
+
+Wyniki modelu Balanced na zbiorze testowym.
+
+* **Wyniki:**
+    * **Accuracy:** 0.8534 (85.3%)
+    * **Recall:** 0.9840 (98.4%)
+    * **AUC:** 0.8918
+* **Wnioski:**
+    * **Wysoki Recall:** Model osiągnął najważniejszy cel w cyberbezpieczeństwie – wykrył prawie 99% ataków. To bardzo dobry wynik, zważywszy na trudność danych.
+    * **Niska Dokładność (Accuracy):** Wynik 85% przy tak wysokim Recallu sugeruje problem z precyzją (Precision). Model jest "nadwrażliwy" i klasyfikuje zbyt wiele normalnych próbek jako ataki (co potwierdzi macierz pomyłek).
+    * **Spadek względem danych syntetycznych:** Zgodnie z przewidywaniami, skuteczność spadła z poziomu 1.0 (Zad 1/2) do 0.89 (AUC). Jest to typowe przy przejściu z symulacji do rzeczywistości.
+
 ---
 
 **Cell 9: Wizualizacja**
@@ -1309,8 +1498,35 @@ plot_betas(model, feature_names)
 **Odpowiedź**
 
 ![](results/3.3.png)
+
+**Analiza Macierzy Pomyłek**
+Szczegółowy rozkład decyzji klasyfikatora.
+
+* **Wnioski:**
+    * **Skuteczne wykrywanie (TP):** 98.4% ataków (11059 próbek) zostało poprawnie zidentyfikowanych. Tylko 1.6% (180 próbek) to False Negatives.
+    * **Problem z Fałszywymi Alarmami (FP):** Aż 22.5% ruchu normalnego (4217 próbek) zostało błędnie oznaczonych jako atak.
+    * **Przyczyna:** Model `Balanced` mocno "karze" za przeoczenie ataku, co przesuwa granicę decyzyjną w stronę wykrywania zagrożeń kosztem generowania fałszywych alarmów. W systemie produkcyjnym taka liczba FP mogłaby być uciążliwa dla administratorów ("alert fatigue").
+
 ![](results/3.4.png)
+
+**Analiza Krzywej ROC**
+
+Krzywa obrazująca kompromis między TPR a FPR.
+
+* **Wnioski:**
+    * Krzywa gwałtownie rośnie na początku (łatwe do wykrycia ataki), ale potem wypłaszcza się wolniej niż w zadaniach syntetycznych.
+    * "Schodek" w okolicach FPR=0.2 sugeruje, że istnieje spora grupa próbek normalnych, które są bardzo trudne do odróżnienia od ataków (zlewają się z nimi). Aby osiągnąć TPR bliskie 1.0, musimy zaakceptować FPR na poziomie ok. 20-25%.
+
 ![](results/3.5.png)
+
+**Analiza Współczynników Beta**
+
+Wagi cech w modelu regresji logistycznej. Zwracają uwagę bardzo duże wartości (magnituda rzędu 30-50).
+
+* **Wnioski:**
+    * **Port Entropy (-48.90):** Najsilniejsza cecha, z ujemnym znakiem. Oznacza to, że *niska* entropia silnie wskazuje na atak (wzrost entropii -> spadek prawdopodobieństwa ataku). Jest to logiczne: atak DDoS lub PortScan generowany przez skrypt często ma bardziej regularną strukturę niż chaotyczny ruch użytkowników (wysoka entropia).
+    * **Unique DST IPs (+32.76):** Silny dodatni wpływ. Duża liczba unikalnych adresów IP docelowych wskazuje na atak (np. skanowanie sieci).
+    * **Syn Ratio (-2.75):** Ciekawostka – w danych rzeczywistych ta cecha ma wagę ujemną (przeciwnie do danych syntetycznych). Może to wynikać z faktu, że w tym konkretnym zbiorze normalny ruch (np. nawiązywanie wielu krótkich sesji HTTP) również ma wysoki wskaźnik SYN, a ataki wolumetryczne w CICIDS2017 mogą opierać się na innych flagach lub pakietach UDP.
 
 ---
 
@@ -1351,6 +1567,13 @@ Generowanie krzywej uczenia...
 
 ![](results/3.6.png)
 
+**Analiza Krzywej Uczenia**
+Wykres dokładności w funkcji rozmiaru zbioru treningowego.
+
+* **Wnioski:**
+    * **Tendencja wzrostowa:** Zarówno wynik treningowy (czerwony) jak i walidacyjny (zielony) rosną wraz z liczbą danych. To dobry znak – model nie osiągnął jeszcze pełnego nasycenia i dodanie większej liczby danych mogłoby jeszcze nieco poprawić wyniki.
+    * **Nietypowa relacja (Val > Train):** Wynik walidacyjny jest wyższy od treningowego. Może to wynikać z zastosowania silnej regularyzacji (lub wag klas) podczas treningu, która "utrudnia" zadanie na zbiorze treningowym, podczas gdy zbiór walidacyjny zawiera nieco łatwiejsze próbki (kwestia losowego podziału przy tak dużej wariancji danych).
+
 ---
 
 **Cell 10: Analiza Błędów**
@@ -1383,3 +1606,13 @@ display(fp_samples.head())
 | 8   | 42553.191489  | 9.0           | 20.0        | 0.0      | 6.0          | 0.000047           | 0.0                 |
 | 19  | 26315.789474  | 9.0           | 20.0        | 0.0      | 6.0          | 0.000076           | 0.0                 |
 | 24  | 666666.666667 | 9.0           | 0.0         | 0.0      | 0.0          | 0.000003           | 3.0                 |
+
+**Analiza Błędów - Przykłady FN i FP**
+
+Analiza konkretnych wierszy, gdzie model się pomylił.
+
+* **Wnioski:**
+    * **Podobieństwo FN i FP:**
+        * **False Negatives (Ataki uznane za normę):** Mają `packetspersec` ok. 200-300k, `avgpacketsize` bardzo małe (3-5 bajtów), `synratio` = 0.
+        * **False Positives (Norma uznana za atak):** Mają `packetspersec` ok. 40-80k (też sporo), `avgpacketsize` małe (9 bajtów), `synratio` = 0.
+    * **Przyczyna pomyłek:** Zarówno pewne ataki, jak i pewne fragmenty ruchu normalnego w tym zbiorze wyglądają niemal identycznie z perspektywy tych 7 cech: są to serie bardzo małych, szybkich pakietów bez flagi SYN. Model nie jest w stanie ich rozróżnić liniową granicą, co skutkuje błędami. Regresja logistyczna okazuje się tutaj ograniczeniem – potrzebny byłby model nieliniowy (np. Las Losowy), aby wyłapać subtelniejsze różnice.
