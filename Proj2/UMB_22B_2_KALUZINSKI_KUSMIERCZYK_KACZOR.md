@@ -846,6 +846,179 @@ def plot_learning_curve_manual(train_sizes, train_scores, val_scores):
     plt.show()
 ```
 
+#### Diagramy kodów źródłowych
+
+**1. Ogólny potok przetwarzania danych (Pipeline)**
+
+Ten diagram przedstawia przepływ danych od ich pozyskania (generowania lub wczytania), przez inżynierię cech, aż po trenowanie modelu i wizualizację
+
+```mermaid
+graph TD
+    subgraph Data_Acquisition ["Pozyskiwanie Danych (data_generation.py)"]
+        A1("generate_ideal_data()<br>(Zadanie 1)")
+        A2("generate_realistic_data()<br>(Zadanie 2: Ataki Różnej Trudności)")
+        A3("load_cicids_data()<br>(Zadanie 3: Pliki CSV)")
+    end
+
+    subgraph Preprocessing ["Przetwarzanie (feature_engineering.py)"]
+        B1{"Źródło danych?"}
+        B2("clean_cicids_data()<br>(Usuwanie ID, NaN, Zerowej Wariancji)")
+        B3("engineer_features_cicids()<br>(Tworzenie 7 cech bazowych)")
+        B4("normalize_data()<br>(StandardScaler: Fit na Train)")
+    end
+
+    subgraph Modeling ["Modelowanie (model_training.py)"]
+        C1("train_model()<br>(LogisticRegression)")
+        C2("optimize_threshold()<br>(Szukanie min. kosztu)")
+        C3("evaluate_model()<br>(Accuracy, Recall, AUC, Macierz Pomyłek)")
+    end
+
+    subgraph Viz ["Wizualizacja (visualization.py)"]
+        D1("Wykresy: Rozkłady, ROC, Macierz Pomyłek, Betas")
+    end
+
+    %% Przepływ
+    A1 --> B4
+    A2 --> B4
+    A3 --> B2 --> B3 --> B4
+    B4 --> C1
+    C1 --> C3
+    C1 --> C2 --> C3
+    C3 --> D1
+
+    style A1 fill:#e1f5fe,stroke:#01579b
+    style A2 fill:#e1f5fe,stroke:#01579b
+    style A3 fill:#e1f5fe,stroke:#01579b
+    style B2 fill:#fff9c4,stroke:#fbc02d
+    style C2 fill:#ffccbc,stroke:#bf360c
+```
+
+**Opis**
+* Dane syntetyczne (`generate_ideal_data`, `generate_realistic_data`) trafiają bezpośrednio do normalizacji, ponieważ są generowane w gotowym formacie 7 cech.
+* Dane rzeczywiste (`load_cicids_data`) muszą przejść przez czyszczenie (`clean_cicids_data`) i inżynierię cech (`engineer_features_cicids`), aby uzyskać wymagane 7 kolumn.
+* Znormalizowane dane trafiają do trenowania modelu, a opcjonalnie (w Zadaniu 2) następuje optymalizacja progu.
+  
+---
+
+**2. Logika generowania danych realistycznych (Zadanie 2)**
+
+Ten diagram ilustruje algorytm tworzenia niezbalansowanego zbioru danych z atakami o różnym stopniu trudności, zaimplementowany w funkcji `generate_realistic_data`
+
+```mermaid
+flowchart TD
+    Start([Start: generate_realistic_data]) --> Params[Definicja parametrów rozkładów mu, sigma]
+    Params --> NormLoop[Generowanie 950 próbek ruchu NORMALNEGO]
+    NormLoop --> Helper{Funkcja pomocnicza: add_attacks}
+    
+    Helper --> Obv[Ataki Oczywiste: 20 próbek]
+    Obv --> ShiftObv["Przesunięcie o +/- 4*sigma"]
+    
+    Helper --> Med[Ataki Średnie: 15 próbek]
+    Med --> ShiftMed["Przesunięcie o +/- 2*sigma"]
+    
+    Helper --> Sub[Ataki Subtelne: 15 próbek]
+    Sub --> ShiftSub["Przesunięcie o +/- 1*sigma"]
+    
+    ShiftObv --> Append[Dodaj do listy danych]
+    ShiftMed --> Append
+    ShiftSub --> Append
+    
+    Append --> Shuffle[Permutacja danych shuffle]
+    Shuffle --> DF[Utworzenie DataFrame]
+    DF --> End([Koniec])
+
+    style ShiftObv fill:#ffcdd2,stroke:#b71c1c
+    style ShiftMed fill:#e1bee7,stroke:#4a148c
+    style ShiftSub fill:#c5cae9,stroke:#1a237e
+```
+
+**Opis**
+* Diagram pokazuje kluczową logikę przesuwania średniej rozkładu o wielokrotność odchylenia standardowego (k⋅σ) w zależności od trudności ataku (k=4,2,1).
+* Funkcja `add_attacks` obsługuje logikę generowania próbek dla każdej podgrupy ataków.
+
+---
+
+**3. Logika optymalizacji progu decyzyjnego (Algorytm 3)**
+
+Diagram sekwencji pokazujący, jak funkcja `optimize_threshold` znajduje najlepszy punkt pracy modelu, minimalizując funkcję kosztu.
+
+```mermaid
+sequenceDiagram
+    participant U as Użytkownik/Notebook
+    participant M as optimize_threshold
+    participant Model as Trained Model
+    participant Calc as Obliczenia
+
+    U->>M: Wywołaj z (model, X_test, y_test)
+    M->>Model: predict_proba(X_test)
+    Model-->>M: Zwróć prawdopodobieństwa (probs)
+    
+    loop Dla każdego progu tau od 0.01 do 0.99
+        M->>Calc: y_pred = (probs >= tau)
+        M->>Calc: Oblicz FN i FP
+        M->>Calc: Koszt = 100*FN + 1*FP
+        Calc-->>M: Zwróć Koszt
+        alt Koszt < Najlepszy Koszt
+            M->>M: Zapisz nowe minimum (best_tau)
+        end
+    end
+    
+    M-->>U: Zwróć best_tau, lista_kosztów
+```
+
+**Opis**
+* Proces iteruje przez progi od 0.01 do 0.99.
+* Kluczowym elementem jest asymetryczna funkcja kosztu, która karze błędy False Negative 100 razy mocniej niż False Positive (wFN=100, wFP=1).
+
+---
+
+**4. Struktura Modułowa Projektu**
+
+Diagram klas (UML) pokazujący organizację kodu na pliki i funkcje, co ułatwia zrozumienie zależności.
+
+```mermaid
+classDiagram
+    class DataGeneration {
+        +generate_ideal_data(n_norm, n_attack)
+        +generate_realistic_data(n_norm, n_obv, n_med, n_sub)
+        +load_cicids_data(data_dir, sample_size)
+    }
+
+    class FeatureEngineering {
+        +clean_cicids_data(df)
+        +engineer_features_cicids(df)
+        +normalize_data(X_train, X_test, X_val)
+    }
+
+    class ModelTraining {
+        +train_model(X_train, y_train, class_weight)
+        +optimize_threshold(model, X_test, y_test, wFN, wFP)
+        +evaluate_model(model, X_test, y_test, threshold)
+        +analyze_errors_task3(X_test, y_test, y_pred, prob, features)
+    }
+
+    class Visualization {
+        +plot_distributions(df, features)
+        +plot_correlation_matrix(df, features)
+        +plot_betas(model, features)
+        +plot_feature_impact(model, sample, features)
+        +plot_confusion_matrix(y_true, y_pred)
+        +plot_roc_curve(metrics)
+        +plot_task2_cost(thresholds, costs)
+        +plot_learning_curve_manual(sizes, train_sc, val_sc)
+    }
+
+    DataGeneration ..> FeatureEngineering : Przekazuje surowe dane
+    FeatureEngineering ..> ModelTraining : Przekazuje X_train, y_train
+    ModelTraining ..> Visualization : Przekazuje model i metryki
+```
+
+**Opis**
+* **DataGeneration:** Odpowiada za dostarczenie danych (`DataFrame`).
+* **FeatureEngineering:** Zawiera logikę transformacji, w tym specyficzne dla Zadania 3 czyszczenie i aproksymacje cech (np. użycie `Bwd Header Length` jako entropii).
+* **ModelTraining:** Centralna logika uczenia maszynowego i ewaluacji.
+* **Visualization:** Obsługa wszystkich wykresów wymaganych w raporcie.
+
 ### Wyniki
 
 **Wykorzystanie Środowiska Jupyter Notebook**
